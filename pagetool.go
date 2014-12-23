@@ -16,7 +16,10 @@ func main() {
 	// Create directory if it doesn't exist
 	directory := strconv.Itoa(t.Year())
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
-		os.Mkdir(directory, 0755)
+		if err := os.Mkdir(directory, 0755); err != nil {
+			fmt.Printf("Error creating directory: %v\n", err)
+			return
+		}
 	}
 
 	// Test for presence of file
@@ -33,13 +36,17 @@ func main() {
 		return
 	}
 	file.Close()
-	fmt.Printf("File created: %v\n", file.Name())
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Error getting working directory: %v\n", err)
+		return
+	}
+	fmt.Println("File created: " + wd + file.Name())
 
 	// Open file for editing
 	editCmd := strings.Split(os.Getenv("EDITOR"), " ")
 	editCmd = append(editCmd, file.Name())
-	err = exec.Command(editCmd[0], editCmd[1:]...).Run()
-	if err != nil {
+	if err := exec.Command(editCmd[0], editCmd[1:]...).Run(); err != nil {
 		fmt.Printf("Error opening editor: %v\n", err)
 		return
 	}
