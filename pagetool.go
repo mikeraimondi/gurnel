@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strconv"
@@ -41,11 +43,12 @@ func main() {
 		fmt.Printf("Error getting working directory: %v\n", err)
 		return
 	}
-	fmt.Println("File created: " + wd + file.Name())
+	fmt.Println("File created: " + wd + "/" + file.Name())
 
 	// Open file for editing
 	editCmd := strings.Split(os.Getenv("EDITOR"), " ")
 	editCmd = append(editCmd, file.Name())
+	startTime := time.Now()
 	if err := exec.Command(editCmd[0], editCmd[1:]...).Run(); err != nil {
 		fmt.Printf("Error opening editor: %v\n", err)
 		return
@@ -60,6 +63,20 @@ func main() {
 	if fi.Size() == 0 {
 		fmt.Println("Aborting due to empty file")
 		os.Remove(file.Name())
+		return
+	}
+
+	// Add metadata to front matter
+	elapsed := time.Since(startTime)
+	buf := bytes.NewBuffer(nil)
+	fmt.Fprintf(buf, "---\nseconds: %.0f\n---\n", elapsed.Seconds())
+	if _, err := io.Copy(buf, file); err != nil {
+		fmt.Printf("Error writing front matter: %v\n", err)
+		return
+	}
+	if _, err := file.WriteAt(buf.Bytes(), 0); err != nil {
+		fmt.Printf("Error writing to file: %v\n", err)
+		fmt.Printf("Dump:\n%v\n", buf)
 		return
 	}
 
