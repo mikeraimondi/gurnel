@@ -35,7 +35,7 @@ func main() {
 		fmt.Printf("Error creating file: %v\n", err)
 		return
 	}
-	file.Close()
+	defer file.Close()
 	wd, err := os.Getwd()
 	if err != nil {
 		fmt.Printf("Error getting working directory: %v\n", err)
@@ -48,6 +48,18 @@ func main() {
 	editCmd = append(editCmd, file.Name())
 	if err := exec.Command(editCmd[0], editCmd[1:]...).Run(); err != nil {
 		fmt.Printf("Error opening editor: %v\n", err)
+		return
+	}
+
+	// Abort and remove file if untouched
+	fi, err := file.Stat()
+	if err != nil {
+		fmt.Printf("Error getting file info: %v\n", err)
+		return
+	}
+	if fi.Size() == 0 {
+		fmt.Println("Aborting due to empty file")
+		os.Remove(file.Name())
 		return
 	}
 
