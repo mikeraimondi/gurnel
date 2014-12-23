@@ -2,15 +2,27 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
 )
+
+type ptFrontmatter struct {
+	Seconds uint16
+	Text    []byte `yaml:"-"`
+}
+
+func (fm *ptFrontmatter) SetText(s []byte) {
+	fm.Text = s
+}
+
+func (fm *ptFrontmatter) GetText() []byte {
+	return fm.Text
+}
 
 func main() {
 	t := time.Now()
@@ -25,25 +37,41 @@ func main() {
 	}
 
 	// Test for presence of file
+	var file *os.File
+	defer file.Close()
 	filename := directory + "/" + t.Format("2006_01_02"+".md")
-	if _, err := os.Stat(filename); err == nil {
-		fmt.Println("Error: file exists")
-		return
+	if _, err := os.Stat(filename); err != nil {
+		// Create file
+		if file, err = os.Create(filename); err != nil {
+			fmt.Printf("Error creating file: %v\n", err)
+			return
+		}
+		if _, err = file.WriteString("---\n---\n"); err != nil {
+			fmt.Printf("Error writing initial frontmatter: %v\n", err)
+			return
+		}
+		wd, err := os.Getwd()
+		if err != nil {
+			fmt.Printf("Error getting working directory: %v\n", err)
+			return
+		}
+		fmt.Println("File created: " + wd + "/" + file.Name())
+	} else {
+		// Open file
+		var perm os.FileMode = 0666
+		if file, err = os.OpenFile(filename, os.O_RDWR, perm); err != nil {
+			fmt.Printf("Error opening file: %v\n", err)
+			return
+		}
 	}
 
-	// Create file
-	file, err := os.Create(filename)
+	// Store modification time
+	fi, err := file.Stat()
 	if err != nil {
-		fmt.Printf("Error creating file: %v\n", err)
+		fmt.Printf("Error getting file info: %v\n", err)
 		return
 	}
-	defer file.Close()
-	wd, err := os.Getwd()
-	if err != nil {
-		fmt.Printf("Error getting working directory: %v\n", err)
-		return
-	}
-	fmt.Println("File created: " + wd + "/" + file.Name())
+	modTime := fi.ModTime()
 
 	// Open file for editing
 	editCmd := strings.Split(os.Getenv("EDITOR"), " ")
@@ -53,30 +81,38 @@ func main() {
 		fmt.Printf("Error opening editor: %v\n", err)
 		return
 	}
+	elapsed := time.Since(startTime)
 
-	// Abort and remove file if untouched
-	fi, err := file.Stat()
-	if err != nil {
+	// Abort if file is untouched
+	if fi, err = file.Stat(); err != nil {
 		fmt.Printf("Error getting file info: %v\n", err)
 		return
 	}
-	if fi.Size() == 0 {
-		fmt.Println("Aborting due to empty file")
-		os.Remove(file.Name())
+	if fi.ModTime() == modTime {
+		fmt.Println("Aborting due to unchanged file")
 		return
 	}
 
-	// Add metadata to front matter
-	elapsed := time.Since(startTime)
-	buf := bytes.NewBuffer(nil)
-	fmt.Fprintf(buf, "---\nseconds: %.0f\n---\n", elapsed.Seconds())
-	if _, err := io.Copy(buf, file); err != nil {
-		fmt.Printf("Error writing front matter: %v\n", err)
+	// Parse & process frontmatter
+	var fm ptFrontmatter
+	data, err := ioutil.ReadAll(file)
+	if err != nil {
+		fmt.Printf("Error reading file: %v\n", err)
 		return
 	}
-	if _, err := file.WriteAt(buf.Bytes(), 0); err != nil {
+	if err := Unmarshal(data, &fm); err != nil {
+		fmt.Printf("Error reading YAML frontmatter: %v\n", err)
+		return
+	}
+	fm.Seconds += uint16(elapsed.Seconds())
+	fmData, err := Marshal(&fm)
+	if err != nil {
+		fmt.Printf("Error writing YAML frontmatter: %v\n", err)
+		return
+	}
+	if _, err := file.WriteAt(fmData, 0); err != nil {
 		fmt.Printf("Error writing to file: %v\n", err)
-		fmt.Printf("Dump:\n%v\n", buf)
+		fmt.Printf("Dump:\n%v\n", fmData)
 		return
 	}
 
