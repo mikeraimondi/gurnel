@@ -1,7 +1,8 @@
 package main
 
 import (
-	"errors"
+	"io"
+	"io/ioutil"
 	"regexp"
 
 	"gopkg.in/yaml.v2"
@@ -9,36 +10,35 @@ import (
 
 const fmRegex = `(?ms)^\s*---.*---$`
 
-// Texter is dumb
-type Texter interface {
-	GetText() []byte
-
-	SetText([]byte)
-}
-
-// Unmarshal parses the file containing YAML frontmatter and stores the result in the value pointed to by v.
-func Unmarshal(data []byte, v Texter) (err error) {
+// Unmarshal parses the file containing YAML frontmatter and stores YAML encoded data in the value pointed to by v. The body of the document is written to w.
+func Unmarshal(data []byte, v interface{}, w io.Writer) (err error) {
 	regex := regexp.MustCompile(fmRegex)
-	if fmLoc := regex.FindIndex(data); fmLoc != nil {
-		if err = yaml.Unmarshal(data[fmLoc[0]:fmLoc[1]], v); err != nil {
-			return err
-		}
-		if len(data) > fmLoc[1]+1 {
-			v.SetText(data[fmLoc[1]+1:])
-		}
-	} else {
-		return errors.New("No frontmatter found")
+	fmLoc := regex.FindIndex(data)
+	if fmLoc == nil {
+		_, err = w.Write(data)
+		return err
 	}
-	return nil
+	if err = yaml.Unmarshal(data[fmLoc[0]:fmLoc[1]], v); err != nil {
+		return err
+	}
+	if len(data) <= fmLoc[1]+1 {
+		return
+	}
+	_, err = w.Write(data[fmLoc[1]+1:])
+	return err
 }
 
-// Marshal returns the YAML-frontmatter containing document from v
-func Marshal(v Texter) (data []byte, err error) {
+// Marshal returns the YAML-frontmatter containing document from v. It appends the contents of r.
+func Marshal(v interface{}, r io.Reader) (data []byte, err error) {
 	if data, err = yaml.Marshal(&v); err != nil {
+		return data, err
+	}
+	body, err := ioutil.ReadAll(r)
+	if err != nil {
 		return data, err
 	}
 	data = append([]byte("---\n"), data...)
 	data = append(data, []byte("---\n")...)
-	data = append(data, v.GetText()...)
+	data = append(data, body...)
 	return data, nil
 }

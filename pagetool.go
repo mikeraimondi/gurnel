@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -11,17 +12,9 @@ import (
 	"time"
 )
 
-type ptFrontmatter struct {
+type page struct {
 	Seconds uint16
-	Text    []byte `yaml:"-"`
-}
-
-func (fm *ptFrontmatter) SetText(s []byte) {
-	fm.Text = s
-}
-
-func (fm *ptFrontmatter) GetText() []byte {
-	return fm.Text
+	buf     bytes.Buffer
 }
 
 func main() {
@@ -44,10 +37,6 @@ func main() {
 		// Create file
 		if file, err = os.Create(filename); err != nil {
 			fmt.Printf("Error creating file: %v\n", err)
-			return
-		}
-		if _, err = file.WriteString("---\n---\n"); err != nil {
-			fmt.Printf("Error writing initial frontmatter: %v\n", err)
 			return
 		}
 		wd, err := os.Getwd()
@@ -94,18 +83,18 @@ func main() {
 	}
 
 	// Parse & process frontmatter
-	var fm ptFrontmatter
+	var p page
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
 		fmt.Printf("Error reading file: %v\n", err)
 		return
 	}
-	if err := Unmarshal(data, &fm); err != nil {
+	if err := Unmarshal(data, &p, &p.buf); err != nil {
 		fmt.Printf("Error reading YAML frontmatter: %v\n", err)
 		return
 	}
-	fm.Seconds += uint16(elapsed.Seconds())
-	fmData, err := Marshal(&fm)
+	p.Seconds += uint16(elapsed.Seconds())
+	fmData, err := Marshal(&p, &p.buf)
 	if err != nil {
 		fmt.Printf("Error writing YAML frontmatter: %v\n", err)
 		return
