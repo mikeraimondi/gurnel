@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/mikeraimondi/frontmatter"
 )
 
 type page struct {
@@ -89,12 +91,12 @@ func main() {
 		fmt.Printf("Error reading file: %v\n", err)
 		return
 	}
-	if err := Unmarshal(data, &p, &p.buf); err != nil {
+	if err := frontmatter.Unmarshal(data, &p, &p.buf); err != nil {
 		fmt.Printf("Error reading YAML frontmatter: %v\n", err)
 		return
 	}
 	p.Seconds += uint16(elapsed.Seconds())
-	fmData, err := Marshal(&p, &p.buf)
+	fmData, err := frontmatter.Marshal(&p, &p.buf)
 	if err != nil {
 		fmt.Printf("Error writing YAML frontmatter: %v\n", err)
 		return
