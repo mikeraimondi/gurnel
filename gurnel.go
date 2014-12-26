@@ -2,22 +2,13 @@ package main
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/mikeraimondi/frontmatter"
 )
-
-type page struct {
-	Seconds uint16
-	buf     bytes.Buffer
-}
 
 func main() {
 	t := time.Now()
@@ -85,52 +76,42 @@ func main() {
 	}
 
 	// Parse & process frontmatter
-	var p page
-	data, err := ioutil.ReadAll(file)
+	p, err := readFile(file)
 	if err != nil {
 		fmt.Printf("Error reading file: %v\n", err)
 		return
 	}
-	if err := frontmatter.Unmarshal(data, &p, &p.buf); err != nil {
-		fmt.Printf("Error reading YAML frontmatter: %v\n", err)
-		return
-	}
 	p.Seconds += uint16(elapsed.Seconds())
-	fmData, err := frontmatter.Marshal(&p, &p.buf)
-	if err != nil {
-		fmt.Printf("Error writing YAML frontmatter: %v\n", err)
-		return
-	}
-	if _, err := file.WriteAt(fmData, 0); err != nil {
+	if err := p.writeFile(file); err != nil {
 		fmt.Printf("Error writing to file: %v\n", err)
-		fmt.Printf("Dump:\n%v\n", fmData)
 		return
 	}
 
 	// Prompt for commit
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("Commit? (y/n)")
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	if input == "y" {
-		// Commit the changes
-		err = exec.Command("git", "add", file.Name()).Run()
-		if err != nil {
-			fmt.Printf("Error adding file to version control: %v\n", err)
+	for {
+		fmt.Print("Commit? (y/n) ")
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		if input == "y" {
+			// Commit the changes
+			err = exec.Command("git", "add", file.Name()).Run()
+			if err != nil {
+				fmt.Printf("Error adding file to version control: %v\n", err)
+				return
+			}
+			err = exec.Command("git", "commit", "-m", "Done").Run()
+			if err != nil {
+				fmt.Printf("Error committing file: %v\n", err)
+				return
+			}
+			fmt.Println("Committed")
 			return
-		}
-		err = exec.Command("git", "commit", "-m", "Done").Run()
-		if err != nil {
-			fmt.Printf("Error committing file: %v\n", err)
+		} else if input == "n" {
+			fmt.Println("Exiting")
 			return
+		} else {
+			fmt.Println("Unrecognized input")
 		}
-		fmt.Println("Committed")
-		return
-	} else if input == "n" {
-		fmt.Println("Exiting")
-		return
-	} else {
-		fmt.Println("Unrecognized input, exiting")
-		return
 	}
 }
