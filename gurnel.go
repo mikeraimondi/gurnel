@@ -3,15 +3,46 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
 )
 
+const dirRegex = `^\d{4}$`
+
 func main() {
 	t := time.Now()
+
+	if len(os.Args) > 1 && os.Args[1] == "percent" {
+		files, _ := filepath.Glob("*")
+		regex := regexp.MustCompile(dirRegex)
+		minYear := t
+		entries := 0
+		for _, file := range files {
+			if fi, err := os.Lstat(file); err != nil {
+				fmt.Printf("Error stat'ing file: %v\n", err)
+			} else if fi.IsDir() {
+				if regex.MatchString(file) {
+					yearTime, _ := time.Parse("2006", file)
+					if yearTime.Year() <= minYear.Year() {
+						minYear = yearTime
+					}
+					dirEntries, _ := filepath.Glob(file + string(filepath.Separator) + "*.md")
+					entries += len(dirEntries)
+				}
+			}
+		}
+		if entries > 0 {
+			percent := float64(entries) / math.Ceil(t.Sub(minYear).Hours()/24)
+			fmt.Println(percent)
+		}
+		return
+	}
 
 	// Create directory if it doesn't exist
 	directory := strconv.Itoa(t.Year())
@@ -25,7 +56,8 @@ func main() {
 	// Test for presence of file
 	var file *os.File
 	defer file.Close()
-	filename := directory + "/" + t.Format("2006_01_02"+".md")
+	os.Chdir(directory)
+	filename := t.Format("2006_01_02" + ".md")
 	if _, err := os.Stat(filename); err != nil {
 		// Create file
 		if file, err = os.Create(filename); err != nil {
@@ -37,7 +69,7 @@ func main() {
 			fmt.Printf("Error getting working directory: %v\n", err)
 			return
 		}
-		fmt.Println("File created: " + wd + "/" + file.Name())
+		fmt.Println("File created: " + wd + string(filepath.Separator) + file.Name())
 	} else {
 		// Open file
 		var perm os.FileMode = 0666
