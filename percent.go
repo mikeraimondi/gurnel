@@ -9,7 +9,15 @@ import (
 	"time"
 )
 
-func percent() (err error) {
+func percentCmd() gurnelCmd {
+	return gurnelCmd{
+		f:             percent,
+		condensedHelp: "View percentage of days journaled",
+		fullHelp:      "TODO",
+	}
+}
+
+func percent(args []string) (err error) {
 	files, err := filepath.Glob("*")
 	if err != nil {
 		return err

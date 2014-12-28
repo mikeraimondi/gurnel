@@ -12,7 +12,15 @@ import (
 	"time"
 )
 
-func start() (err error) {
+func startCmd() gurnelCmd {
+	return gurnelCmd{
+		f:             start,
+		condensedHelp: "Begin journal entry for today",
+		fullHelp:      "TODO",
+	}
+}
+
+func start(args []string) (err error) {
 	// Create directory if it doesn't exist
 	t := time.Now()
 	directory := strconv.Itoa(t.Year())
