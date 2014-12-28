@@ -24,8 +24,8 @@ func percent() (err error) {
 			return err
 		} else if fi.IsDir() {
 			if regex.MatchString(file) {
-				const format = "2006"
-				yearTime, err := time.Parse(format, file)
+				const dirFormat = "2006"
+				yearTime, err := time.Parse(dirFormat, file)
 				if err != nil {
 					return err
 				}
@@ -42,8 +42,9 @@ func percent() (err error) {
 		}
 	}
 	if entries > 0 {
-		percent := float64(entries) / math.Ceil(t.Sub(minYear).Hours()/24)
-		fmt.Println(percent)
+		percent := float64(entries) / math.Floor(t.Sub(minYear).Hours()/24)
+		const outFormat = "Jan 2 2006"
+		fmt.Printf("%.2f%% of days journaled since %v\n", percent*100, minYear.Format(outFormat))
 	}
 	return
 }
