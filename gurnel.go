@@ -22,7 +22,7 @@ func init() {
 }
 
 func main() {
-	registerCommandHandler("root", rootCmd)
+	registerCommandHandler("root", root)
 	registerCommandHandler("start", startCmd)
 	registerCommandHandler("percent", percentCmd)
 	executeCommand()

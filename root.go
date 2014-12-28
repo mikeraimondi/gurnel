@@ -1,12 +1,10 @@
 package main
 
-func rootCmd() gurnelCmd {
+func root() gurnelCmd {
 	return gurnelCmd{
-		f: root,
+		f: func(args []string) (err error) {
+			displayHelpToc()
+			return
+		},
 	}
-}
-
-func root(args []string) (err error) {
-	displayHelpToc()
-	return
 }
