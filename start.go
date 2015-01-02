@@ -82,23 +82,27 @@ func start(args []string) (err error) {
 	// Parse & process frontmatter
 	p, err := readFile(file)
 	if err != nil {
-		fmt.Printf("Error reading file: %v\n", err)
+		return errors.New("reading from file " + err.Error())
+	}
+
+	// Check word count before proceeding to metadata collection
+	wordCount := len(p.words())
+	fmt.Printf("%v words in entry\n", wordCount)
+	if wordCount < minWordCount {
+		fmt.Printf("Minimum word count is %v. Insufficient word count to commit\n", minWordCount)
 		return
+	}
+
+	// Collect & set metadata
+	if err := p.promptForMetadata(os.Stdin, os.Stdout); err != nil {
+		return errors.New("collecting metadata " + err.Error())
 	}
 	p.Seconds += uint16(elapsed.Seconds())
 	if err := p.writeFile(file); err != nil {
 		return errors.New("writing to file " + err.Error())
 	}
 
-	// TODO prompt for metadata
-
 	// Prompt for commit
-	wordCount := len(p.words())
-	fmt.Printf("%v words in entry. ", wordCount)
-	if wordCount < minWordCount {
-		fmt.Printf("Minimum word count is %v. Insufficient word count to commit\n", minWordCount)
-		return
-	}
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("Commit? (y/n) ")
