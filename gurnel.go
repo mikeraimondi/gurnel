@@ -28,6 +28,7 @@ func main() {
 	registerCommandHandler("root", root)
 	registerCommandHandler("start", startCmd)
 	registerCommandHandler("stats", statsCmd)
+	// TODO add "init" command. It should check that the directory is empty, create a config file, and do a 'git init'
 	executeCommand()
 }
 

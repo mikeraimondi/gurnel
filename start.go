@@ -92,6 +92,7 @@ func start(args []string) (err error) {
 		fmt.Printf("Minimum word count is %v. Insufficient word count to commit\n", minWordCount)
 		return
 	}
+	fmt.Printf("---begin entry preview---\n%v\n--end entry preview---", string(p.body))
 
 	// Collect & set metadata
 	if err := p.promptForMetadata(os.Stdin, os.Stdout); err != nil {
