@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"regexp"
 
 	"github.com/mikeraimondi/frontmatter"
 )
+
+const wordRegex = `\w+`
 
 type page struct {
 	Seconds uint16
@@ -37,4 +40,8 @@ func (p *page) writeFile(f *os.File) error {
 		return err
 	}
 	return nil
+}
+
+func (p *page) words() [][]byte {
+	return regexp.MustCompile(wordRegex).FindAll(p.body, -1)
 }

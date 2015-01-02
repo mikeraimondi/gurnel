@@ -6,16 +6,19 @@ import (
 	"sort"
 )
 
-type gurnelCmd struct {
-	f             func([]string) error
-	condensedHelp string
-	fullHelp      string
-}
+// TODO make configurable
+const minWordCount = 750
 
 var (
 	commandHandlers map[string]gurnelCmd
 	commands        []string
 )
+
+type gurnelCmd struct {
+	f             func([]string) error
+	condensedHelp string
+	fullHelp      string
+}
 
 func init() {
 	commandHandlers = make(map[string]gurnelCmd)
@@ -24,7 +27,7 @@ func init() {
 func main() {
 	registerCommandHandler("root", root)
 	registerCommandHandler("start", startCmd)
-	registerCommandHandler("percent", percentCmd)
+	registerCommandHandler("stats", statsCmd)
 	executeCommand()
 }
 

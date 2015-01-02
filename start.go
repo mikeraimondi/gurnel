@@ -90,7 +90,15 @@ func start(args []string) (err error) {
 		return errors.New("writing to file " + err.Error())
 	}
 
+	// TODO prompt for metadata
+
 	// Prompt for commit
+	wordCount := len(p.words())
+	fmt.Printf("%v words in entry. ", wordCount)
+	if wordCount < minWordCount {
+		fmt.Printf("Minimum word count is %v. Insufficient word count to commit\n", minWordCount)
+		return
+	}
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("Commit? (y/n) ")
