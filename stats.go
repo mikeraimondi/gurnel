@@ -12,6 +12,17 @@ import (
 	"time"
 )
 
+const commonWords = "i to the a and of is that in for it be on at this with but not"
+
+var commonWordsArray []string
+
+func getCommonWords() []string {
+	if commonWordsArray == nil {
+		commonWordsArray = strings.Split(commonWords, " ")
+	}
+	return commonWordsArray
+}
+
 func statsCmd() gurnelCmd {
 	return gurnelCmd{
 		f:             stats,
@@ -78,22 +89,16 @@ func stats(args []string) (err error) {
 
 		topWordCount := 10
 		fmt.Printf("Top %v words by frequency:\n", topWordCount)
-		var wordStats []wordStat
-		for word, count := range wordMap {
-			wordStats = append(wordStats, wordStat{word: word, occurrences: count})
-		}
-		sort.Sort(byOccurences(wordStats))
-		commonWords := []string{"i", "to", "the", "a", "and", "of", "is", "that", "in", "for", "it", "be", "on", "at", "this", "with", "but", "not"}
+		wordStats := make([]wordStat, len(wordMap))
 		i := 0
+		for word, count := range wordMap {
+			wordStats[i] = wordStat{word: word, occurrences: count}
+			i++
+		}
+		sort.Sort(descOccurences(wordStats))
+		i = 0
 		for _, ws := range wordStats {
-			common := false
-			for _, cw := range commonWords {
-				if ws.word == cw {
-					common = true
-					break
-				}
-			}
-			if !common && len(ws.word) > 2 {
+			if len(ws.word) > 2 && !ws.isCommon() {
 				i++
 				fmt.Println(ws.word)
 			}
@@ -162,8 +167,17 @@ type wordStat struct {
 	occurrences uint64
 }
 
-type byOccurences []wordStat
+func (ws *wordStat) isCommon() bool {
+	for _, cw := range getCommonWords() {
+		if ws.word == cw {
+			return true
+		}
+	}
+	return false
+}
 
-func (o byOccurences) Len() int           { return len(o) }
-func (o byOccurences) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
-func (o byOccurences) Less(i, j int) bool { return o[i].occurrences > o[j].occurrences }
+type descOccurences []wordStat
+
+func (o descOccurences) Len() int           { return len(o) }
+func (o descOccurences) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
+func (o descOccurences) Less(i, j int) bool { return o[i].occurrences > o[j].occurrences }
