@@ -7,7 +7,11 @@ import (
 )
 
 // TODO make configurable
-const minWordCount = 750
+const (
+	minWordCount = 750
+	entryFormat  = "2006-01-02-Journal-Entry-for-Jan-2" + ".md"
+	entryGlob    = "????-??-??-Journal-Entry-for-*" + ".md"
+)
 
 var (
 	commandHandlers map[string]gurnelCmd

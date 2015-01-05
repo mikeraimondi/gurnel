@@ -6,9 +6,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/mikeraimondi/frontmatter"
 )
@@ -24,6 +26,7 @@ type page struct {
 	HighMood    uint8
 	AverageMood uint8
 	body        []byte
+	file        string
 }
 
 func (p *page) setLowMood(rating uint8) {
@@ -57,7 +60,7 @@ func readFile(f *os.File) (p *page, err error) {
 	if err != nil {
 		return p, err
 	}
-	p = &page{}
+	p = &page{file: filepath.Base(f.Name())}
 	if p.body, err = frontmatter.Unmarshal(data, p); err != nil {
 		return p, err
 	}
@@ -105,4 +108,8 @@ func (p *page) promptForMetadata(reader io.Reader, w io.Writer) (err error) {
 		}
 	}
 	return err
+}
+
+func (p *page) date() (t time.Time, err error) {
+	return time.Parse(entryFormat, p.file)
 }

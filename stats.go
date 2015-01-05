@@ -5,7 +5,6 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -32,59 +31,41 @@ func statsCmd() gurnelCmd {
 }
 
 func stats(args []string) (err error) {
-	files, err := filepath.Glob("*")
+	t := time.Now()
+	minDate := t
+	var wordCount uint64
+	wordMap := make(map[string]uint64)
+	entries, err := filepath.Glob(entryGlob)
 	if err != nil {
 		return err
 	}
-	const dirRegex = `^\d{4}$`
-	regex := regexp.MustCompile(dirRegex)
-	t := time.Now()
-	minYear := t
-	var entries uint64
-	var wordCount uint64
-	wordMap := make(map[string]uint64)
-	for _, file := range files {
-		if fi, err := os.Lstat(file); err != nil {
+	in := gen(entries...)
+	c1 := openPage(in)
+	c2 := openPage(in)
+	c3 := openPage(in)
+	c4 := openPage(in)
+	c5 := openPage(in)
+	c6 := openPage(in)
+	c7 := openPage(in)
+	c8 := openPage(in)
+	for p := range merge(c1, c2, c3, c4, c5, c6, c7, c8) {
+		// TODO make concurrent
+		if pDate, err := p.date(); err != nil {
 			return err
-		} else if fi.IsDir() { // Find all directories that look like a year
-			if regex.MatchString(file) {
-				const dirFormat = "2006"
-				yearTime, err := time.Parse(dirFormat, file)
-				if err != nil {
-					return err
-				}
-				if yearTime.Year() <= minYear.Year() {
-					minYear = yearTime
-				}
-				const glob = "*.md"
-				dirEntries, err := filepath.Glob(file + string(filepath.Separator) + glob)
-				if err != nil {
-					return err
-				}
-				entries += uint64(len(dirEntries))
-				in := gen(dirEntries...)
-				c1 := getWords(in)
-				c2 := getWords(in)
-				c3 := getWords(in)
-				c4 := getWords(in)
-				c5 := getWords(in)
-				c6 := getWords(in)
-				c7 := getWords(in)
-				c8 := getWords(in)
-				for word := range merge(c1, c2, c3, c4, c5, c6, c7, c8) {
-					wordCount++
-					wordMap[strings.ToLower(word)]++
-				}
-			}
+		} else if minDate.After(pDate) {
+			minDate = pDate
+		}
+		for _, w := range p.words() {
+			wordCount++
+			wordMap[strings.ToLower(string(w))]++
 		}
 	}
-	if entries > 0 {
-		fEntries := float64(entries)
-		percent := fEntries / math.Floor(t.Sub(minYear).Hours()/24)
+	if entryCount := float64(len(entries)); entryCount > 0 {
+		percent := entryCount / math.Floor(t.Sub(minDate).Hours()/24)
 		const outFormat = "Jan 2 2006"
-		fmt.Printf("%.2f%% of days journaled since %v\n", percent*100, minYear.Format(outFormat))
+		fmt.Printf("%.2f%% of days journaled since %v\n", percent*100, minDate.Format(outFormat))
 		fmt.Printf("Total word count: %v\n", wordCount)
-		avgCount := float64(wordCount) / fEntries
+		avgCount := float64(wordCount) / entryCount
 		fmt.Printf("Average word count: %.1f\n", avgCount)
 
 		topWordCount := 10
@@ -110,42 +91,40 @@ func stats(args []string) (err error) {
 	return
 }
 
-func gen(fileNames ...string) <-chan string {
-	out := make(chan string)
+func gen(fileNames ...string) <-chan *page {
+	out := make(chan *page)
 	go func() {
 		for _, fileName := range fileNames {
-			out <- fileName
+			out <- &page{file: fileName}
 		}
 		close(out)
 	}()
 	return out
 }
 
-func getWords(in <-chan string) <-chan string {
-	out := make(chan string)
+func openPage(in <-chan *page) <-chan *page {
+	out := make(chan *page)
 	go func() {
-		for fileName := range in {
-			f, err := os.Open(fileName)
+		for p := range in {
+			f, err := os.Open(p.file)
 			if err != nil {
-				// return err
+				return // err
 			}
 			p, err := readFile(f)
 			if err != nil {
-				// return err
+				return // err
 			}
-			for _, word := range p.words() {
-				out <- string(word)
-			}
+			out <- p
 		}
 		close(out)
 	}()
 	return out
 }
 
-func merge(cs ...<-chan string) <-chan string {
+func merge(cs ...<-chan *page) <-chan *page {
 	var wg sync.WaitGroup
-	out := make(chan string)
-	output := func(c <-chan string) {
+	out := make(chan *page)
+	output := func(c <-chan *page) {
 		for n := range c {
 			out <- n
 		}

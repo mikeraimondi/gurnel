@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -21,21 +20,10 @@ func startCmd() gurnelCmd {
 }
 
 func start(args []string) (err error) {
-	// Create directory if it doesn't exist
-	t := time.Now()
-	directory := strconv.Itoa(t.Year())
-	if _, err := os.Stat(directory); os.IsNotExist(err) {
-		if err := os.Mkdir(directory, 0755); err != nil {
-			return errors.New("creating directory " + err.Error())
-		}
-	}
-
 	// Test for presence of file
 	var file *os.File
 	defer file.Close()
-	os.Chdir(directory)
-	const fFormat = "2006_01_02" + ".md"
-	filename := t.Format(fFormat)
+	filename := time.Now().Format(entryFormat)
 	if _, err := os.Stat(filename); err != nil {
 		// Create file
 		if file, err = os.Create(filename); err != nil {
@@ -90,42 +78,45 @@ func start(args []string) (err error) {
 	fmt.Printf("%v words in entry\n", wordCount)
 	if wordCount < minWordCount {
 		fmt.Printf("Minimum word count is %v. Insufficient word count to commit\n", minWordCount)
-		return
-	}
-	fmt.Printf("---begin entry preview---\n%v\n--end entry preview---\n", string(p.body))
+	} else {
+		fmt.Printf("---begin entry preview---\n%v\n--end entry preview---\n", string(p.body))
 
-	// Collect & set metadata
-	if err := p.promptForMetadata(os.Stdin, os.Stdout); err != nil {
-		return errors.New("collecting metadata " + err.Error())
+		// Collect & set metadata
+		if err := p.promptForMetadata(os.Stdin, os.Stdout); err != nil {
+			return errors.New("collecting metadata " + err.Error())
+		}
 	}
 	p.Seconds += uint16(elapsed.Seconds())
 	if err := p.writeFile(file); err != nil {
 		return errors.New("writing to file " + err.Error())
 	}
 
-	// Prompt for commit
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		fmt.Print("Commit? (y/n) ")
-		input, _ := reader.ReadString('\n')
-		input = strings.TrimSpace(input)
-		if input == "y" {
-			// Commit the changes
-			err = exec.Command("git", "add", file.Name()).Run()
-			if err != nil {
-				return errors.New("adding file to version control " + err.Error())
+	if wordCount > minWordCount {
+		// Prompt for commit
+		reader := bufio.NewReader(os.Stdin)
+		for {
+			fmt.Print("Commit? (y/n) ")
+			input, _ := reader.ReadString('\n')
+			input = strings.TrimSpace(input)
+			if input == "y" {
+				// Commit the changes
+				err = exec.Command("git", "add", file.Name()).Run()
+				if err != nil {
+					return errors.New("adding file to version control " + err.Error())
+				}
+				err = exec.Command("git", "commit", "-m", "Done").Run()
+				if err != nil {
+					return errors.New("committing file " + err.Error())
+				}
+				fmt.Println("Committed")
+				return
+			} else if input == "n" {
+				fmt.Println("Exiting")
+				return
+			} else {
+				fmt.Println("Unrecognized input")
 			}
-			err = exec.Command("git", "commit", "-m", "Done").Run()
-			if err != nil {
-				return errors.New("committing file " + err.Error())
-			}
-			fmt.Println("Committed")
-			return
-		} else if input == "n" {
-			fmt.Println("Exiting")
-			return
-		} else {
-			fmt.Println("Unrecognized input")
 		}
 	}
+	return
 }
