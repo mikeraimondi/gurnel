@@ -55,6 +55,18 @@ func (p *page) prompts() (pr map[string]func(uint8)) {
 	return pr
 }
 
+func fromFile(filename string) (p *page, err error) {
+	data, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return p, err
+	}
+	p = &page{file: filename}
+	if p.body, err = frontmatter.Unmarshal(data, p); err != nil {
+		return p, err
+	}
+	return p, nil
+}
+
 func readFile(f *os.File) (p *page, err error) {
 	data, err := ioutil.ReadAll(f)
 	if err != nil {
@@ -111,5 +123,5 @@ func (p *page) promptForMetadata(reader io.Reader, w io.Writer) (err error) {
 }
 
 func (p *page) date() (t time.Time, err error) {
-	return time.Parse(entryFormat, p.file)
+	return time.Parse(entryFormat, filepath.Base(p.file))
 }

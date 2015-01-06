@@ -1,10 +1,12 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -14,6 +16,18 @@ import (
 const commonWords = "i to the a and of is that in for it be on at this with but not"
 
 var commonWordsArray []string
+
+// TODO words should be communicated differently
+type result struct {
+	page  *page
+	words [][]byte
+	err   error
+}
+
+type wordStat struct {
+	word        string
+	occurrences uint64
+}
 
 func getCommonWords() []string {
 	if commonWordsArray == nil {
@@ -31,36 +45,53 @@ func statsCmd() gurnelCmd {
 }
 
 func stats(args []string) (err error) {
-	t := time.Now()
-	minDate := t
-	var wordCount uint64
-	wordMap := make(map[string]uint64)
-	entries, err := filepath.Glob(entryGlob)
+	done := make(chan struct{})
+	defer close(done)
+
+	wd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
-	in := gen(entries...)
-	c1 := openPage(in)
-	c2 := openPage(in)
-	c3 := openPage(in)
-	c4 := openPage(in)
-	c5 := openPage(in)
-	c6 := openPage(in)
-	c7 := openPage(in)
-	c8 := openPage(in)
-	for p := range merge(c1, c2, c3, c4, c5, c6, c7, c8) {
-		// TODO make concurrent
-		if pDate, err := p.date(); err != nil {
+	paths, errc := walkFiles(done, wd)
+	c := make(chan result)
+	var wg sync.WaitGroup
+	const numDigesters = 20
+	wg.Add(numDigesters)
+	for i := 0; i < numDigesters; i++ {
+		go func() {
+			digester(done, paths, c)
+			wg.Done()
+		}()
+	}
+	go func() {
+		wg.Wait()
+		close(c)
+	}()
+	var entryCount float64
+	var wordCount uint64
+	wordMap := make(map[string]uint64)
+	t := time.Now()
+	minDate := t
+	for r := range c {
+		if r.err != nil {
+			return r.err
+		}
+		entryCount++
+		for _, w := range r.words {
+			wordCount++
+			wordMap[strings.ToLower(string(w))]++
+		}
+		if pDate, err := r.page.date(); err != nil {
 			return err
 		} else if minDate.After(pDate) {
 			minDate = pDate
 		}
-		for _, w := range p.words() {
-			wordCount++
-			wordMap[strings.ToLower(string(w))]++
-		}
 	}
-	if entryCount := float64(len(entries)); entryCount > 0 {
+	// Check whether the Walk failed.
+	if err := <-errc; err != nil {
+		return err
+	}
+	if entryCount > 0 {
 		percent := entryCount / math.Floor(t.Sub(minDate).Hours()/24)
 		const outFormat = "Jan 2 2006"
 		fmt.Printf("%.2f%% of days journaled since %v\n", percent*100, minDate.Format(outFormat))
@@ -91,59 +122,42 @@ func stats(args []string) (err error) {
 	return
 }
 
-func gen(fileNames ...string) <-chan *page {
-	out := make(chan *page)
+func walkFiles(done <-chan struct{}, root string) (<-chan string, <-chan error) {
+	paths := make(chan string)
+	errc := make(chan error, 1)
+	visited := make(map[string]bool)
 	go func() {
-		for _, fileName := range fileNames {
-			out <- &page{file: fileName}
-		}
-		close(out)
-	}()
-	return out
-}
-
-func openPage(in <-chan *page) <-chan *page {
-	out := make(chan *page)
-	go func() {
-		for p := range in {
-			f, err := os.Open(p.file)
+		// Close the paths channel after Walk returns.
+		defer close(paths)
+		// No select needed for this send, since errc is buffered.
+		errc <- filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
-				return // err
+				return err
 			}
-			p, err := readFile(f)
-			if err != nil {
-				return // err
+			if !info.Mode().IsRegular() || visited[info.Name()] || !regexp.MustCompile(entryRegex).MatchString(path) {
+				return nil
 			}
-			out <- p
-		}
-		close(out)
+			visited[info.Name()] = true
+			select {
+			case paths <- path:
+			case <-done:
+				return errors.New("walk canceled")
+			}
+			return nil
+		})
 	}()
-	return out
+	return paths, errc
 }
 
-func merge(cs ...<-chan *page) <-chan *page {
-	var wg sync.WaitGroup
-	out := make(chan *page)
-	output := func(c <-chan *page) {
-		for n := range c {
-			out <- n
+func digester(done <-chan struct{}, paths <-chan string, c chan<- result) {
+	for path := range paths {
+		p, err := fromFile(path)
+		select {
+		case c <- result{p, p.words(), err}:
+		case <-done:
+			return
 		}
-		wg.Done()
 	}
-	wg.Add(len(cs))
-	for _, c := range cs {
-		go output(c)
-	}
-	go func() {
-		wg.Wait()
-		close(out)
-	}()
-	return out
-}
-
-type wordStat struct {
-	word        string
-	occurrences uint64
 }
 
 func (ws *wordStat) isCommon() bool {
