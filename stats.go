@@ -6,11 +6,12 @@ import (
 	"math"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/mikeraimondi/journalentry"
 )
 
 const commonWords = "i to the a and of is that in for it be on at this with but not"
@@ -19,8 +20,8 @@ var commonWordsArray []string
 
 // TODO words should be communicated differently
 type result struct {
-	page  *page
 	words [][]byte
+	date  time.Time
 	err   error
 }
 
@@ -55,11 +56,11 @@ func stats(args []string) (err error) {
 	paths, errc := walkFiles(done, wd)
 	c := make(chan result)
 	var wg sync.WaitGroup
-	const numDigesters = 20
-	wg.Add(numDigesters)
-	for i := 0; i < numDigesters; i++ {
+	const numScanners = 32
+	wg.Add(numScanners)
+	for i := 0; i < numScanners; i++ {
 		go func() {
-			digester(done, paths, c)
+			entryScanner(done, paths, c)
 			wg.Done()
 		}()
 	}
@@ -81,10 +82,8 @@ func stats(args []string) (err error) {
 			wordCount++
 			wordMap[strings.ToLower(string(w))]++
 		}
-		if pDate, err := r.page.date(); err != nil {
-			return err
-		} else if minDate.After(pDate) {
-			minDate = pDate
+		if minDate.After(r.date) {
+			minDate = r.date
 		}
 	}
 	// Check whether the Walk failed.
@@ -134,7 +133,7 @@ func walkFiles(done <-chan struct{}, root string) (<-chan string, <-chan error) 
 			if err != nil {
 				return err
 			}
-			if !info.Mode().IsRegular() || visited[info.Name()] || !regexp.MustCompile(entryRegex).MatchString(path) {
+			if !info.Mode().IsRegular() || visited[info.Name()] || !journalentry.IsEntry(path) {
 				return nil
 			}
 			visited[info.Name()] = true
@@ -149,11 +148,12 @@ func walkFiles(done <-chan struct{}, root string) (<-chan string, <-chan error) 
 	return paths, errc
 }
 
-func digester(done <-chan struct{}, paths <-chan string, c chan<- result) {
+func entryScanner(done <-chan struct{}, paths <-chan string, c chan<- result) {
 	for path := range paths {
-		p, err := fromFile(path)
+		p := &journalentry.Entry{Path: path}
+		_, err := p.Load()
 		select {
-		case c <- result{p, p.words(), err}:
+		case c <- result{date: p.Date, words: p.Words(), err: err}:
 		case <-done:
 			return
 		}

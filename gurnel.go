@@ -9,8 +9,6 @@ import (
 // TODO make configurable
 const (
 	minWordCount = 750
-	entryFormat  = "2006-01-02-Journal-Entry-for-Jan-2" + ".md"
-	entryRegex   = `\d{4}-\d{2}-\d{2}-Journal-Entry-for-\D{3}-\d{1,2}` + ".md"
 )
 
 var (

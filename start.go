@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/mikeraimondi/journalentry"
 )
 
 func startCmd() gurnelCmd {
@@ -20,38 +21,19 @@ func startCmd() gurnelCmd {
 }
 
 func start(args []string) (err error) {
-	// Test for presence of file
-	var file *os.File
-	defer file.Close()
-	filename := time.Now().Format(entryFormat)
-	if _, err := os.Stat(filename); err != nil {
-		// Create file
-		if file, err = os.Create(filename); err != nil {
-			return errors.New("creating file " + err.Error())
-		}
-		wd, err := os.Getwd()
-		if err != nil {
-			return errors.New("getting working directory " + err.Error())
-		}
-		fmt.Println("File created: " + wd + string(filepath.Separator) + file.Name())
-	} else {
-		// Open file
-		var perm os.FileMode = 0666
-		if file, err = os.OpenFile(filename, os.O_RDWR, perm); err != nil {
-			return errors.New("opening file " + err.Error())
-		}
-	}
-
-	// Store modification time
-	fi, err := file.Stat()
+	// Create or open entry at working directory
+	wd, err := os.Getwd()
 	if err != nil {
-		return errors.New("getting file info " + err.Error())
+		return errors.New("getting working directory " + err.Error())
 	}
-	modTime := fi.ModTime()
+	p, err := journalentry.New(wd)
+	if err != nil {
+		return err
+	}
 
 	// Open file for editing
 	editCmd := strings.Split(os.Getenv("EDITOR"), " ")
-	editCmd = append(editCmd, file.Name())
+	editCmd = append(editCmd, p.Path)
 	startTime := time.Now()
 	if err := exec.Command(editCmd[0], editCmd[1:]...).Run(); err != nil {
 		return errors.New("opening editor " + err.Error())
@@ -59,36 +41,29 @@ func start(args []string) (err error) {
 	elapsed := time.Since(startTime)
 
 	// Abort if file is untouched
-	if fi, err = file.Stat(); err != nil {
-		return errors.New("getting file info " + err.Error())
-	}
-	if fi.ModTime() == modTime {
+	if modified, err := p.Load(); err != nil {
+		return errors.New("loading file " + err.Error())
+	} else if !modified {
 		fmt.Println("Aborting due to unchanged file")
-		return
-	}
-
-	// Parse & process frontmatter
-	p, err := readFile(file)
-	if err != nil {
-		return errors.New("reading from file " + err.Error())
+		return nil
 	}
 
 	// Check word count before proceeding to metadata collection
-	wordCount := len(p.words())
+	wordCount := len(p.Words())
 	fmt.Printf("%v words in entry\n", wordCount)
 	if wordCount < minWordCount {
 		fmt.Printf("Minimum word count is %v. Insufficient word count to commit\n", minWordCount)
 	} else {
-		fmt.Printf("---begin entry preview---\n%v\n--end entry preview---\n", string(p.body))
+		fmt.Printf("---begin entry preview---\n%v\n--end entry preview---\n", string(p.Body))
 
 		// Collect & set metadata
-		if err := p.promptForMetadata(os.Stdin, os.Stdout); err != nil {
+		if err := p.PromptForMetadata(os.Stdin, os.Stdout); err != nil {
 			return errors.New("collecting metadata " + err.Error())
 		}
 	}
 	p.Seconds += uint16(elapsed.Seconds())
-	if err := p.writeFile(file); err != nil {
-		return errors.New("writing to file " + err.Error())
+	if err := p.Save(); err != nil {
+		return errors.New("saving file " + err.Error())
 	}
 
 	if wordCount > minWordCount {
@@ -100,7 +75,7 @@ func start(args []string) (err error) {
 			input = strings.TrimSpace(input)
 			if input == "y" {
 				// Commit the changes
-				err = exec.Command("git", "add", file.Name()).Run()
+				err = exec.Command("git", "add", p.Path).Run()
 				if err != nil {
 					return errors.New("adding file to version control " + err.Error())
 				}
