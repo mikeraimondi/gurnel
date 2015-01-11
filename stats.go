@@ -18,11 +18,10 @@ const commonWords = "i to the a and of is that in for it be on at this with but 
 
 var commonWordsArray []string
 
-// TODO words should be communicated differently
 type result struct {
-	words [][]byte
-	date  time.Time
-	err   error
+	wordMap map[string]uint64
+	date    time.Time
+	err     error
 }
 
 type wordStat struct {
@@ -46,9 +45,6 @@ func statsCmd() gurnelCmd {
 }
 
 func stats(args []string) (err error) {
-	done := make(chan struct{})
-	defer close(done)
-
 	wd, err := os.Getwd()
 	if err != nil {
 		return errors.New("getting working directory " + err.Error())
@@ -57,6 +53,9 @@ func stats(args []string) (err error) {
 	if err != nil {
 		return errors.New("evaluating symlinks " + err.Error())
 	}
+
+	done := make(chan struct{})
+	defer close(done)
 	paths, errc := walkFiles(done, wd)
 	c := make(chan result)
 	var wg sync.WaitGroup
@@ -73,7 +72,6 @@ func stats(args []string) (err error) {
 		close(c)
 	}()
 	var entryCount float64
-	var wordCount uint64
 	wordMap := make(map[string]uint64)
 	t := time.Now()
 	minDate := t
@@ -82,9 +80,8 @@ func stats(args []string) (err error) {
 			return r.err
 		}
 		entryCount++
-		for _, w := range r.words {
-			wordCount++
-			wordMap[strings.ToLower(string(w))]++
+		for word, count := range r.wordMap {
+			wordMap[word] += count
 		}
 		if minDate.After(r.date) {
 			minDate = r.date
@@ -98,6 +95,10 @@ func stats(args []string) (err error) {
 		percent := entryCount / math.Floor(t.Sub(minDate).Hours()/24)
 		const outFormat = "Jan 2 2006"
 		fmt.Printf("%.2f%% of days journaled since %v\n", percent*100, minDate.Format(outFormat))
+		var wordCount uint64
+		for _, count := range wordMap {
+			wordCount += count
+		}
 		fmt.Printf("Total word count: %v\n", wordCount)
 		avgCount := float64(wordCount) / entryCount
 		fmt.Printf("Average word count: %.1f\n", avgCount)
@@ -155,9 +156,15 @@ func walkFiles(done <-chan struct{}, root string) (<-chan string, <-chan error) 
 func entryScanner(done <-chan struct{}, paths <-chan string, c chan<- result) {
 	for path := range paths {
 		p := &journalentry.Entry{Path: path}
+		m := make(map[string]uint64)
 		_, err := p.Load()
+		if err == nil {
+			for _, word := range p.Words() {
+				m[strings.ToLower(string(word))]++
+			}
+		}
 		select {
-		case c <- result{date: p.Date, words: p.Words(), err: err}:
+		case c <- result{date: p.Date, wordMap: m, err: err}:
 		case <-done:
 			return
 		}
