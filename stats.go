@@ -51,7 +51,11 @@ func stats(args []string) (err error) {
 
 	wd, err := os.Getwd()
 	if err != nil {
-		return err
+		return errors.New("getting working directory " + err.Error())
+	}
+	wd, err = filepath.EvalSymlinks(wd)
+	if err != nil {
+		return errors.New("evaluating symlinks " + err.Error())
 	}
 	paths, errc := walkFiles(done, wd)
 	c := make(chan result)

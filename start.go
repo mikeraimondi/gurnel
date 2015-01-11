@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -25,6 +26,10 @@ func start(args []string) (err error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return errors.New("getting working directory " + err.Error())
+	}
+	wd, err = filepath.EvalSymlinks(wd)
+	if err != nil {
+		return errors.New("evaluating symlinks " + err.Error())
 	}
 	p, err := journalentry.New(wd)
 	if err != nil {
