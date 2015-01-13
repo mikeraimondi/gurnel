@@ -13,15 +13,14 @@ import (
 	"github.com/mikeraimondi/journalentry"
 )
 
-func startCmd() gurnelCmd {
-	return gurnelCmd{
-		f:             start,
-		condensedHelp: "Begin journal entry for today",
-		fullHelp:      "TODO",
-	}
+var cmdStart = &command{
+	UsageLine: "start",
+	ShortHelp: "Begin journal entry for today",
+	LongHelp:  "TODO",
+	Run:       runStart,
 }
 
-func start(args []string) (err error) {
+func runStart(cmd *command, args []string) (err error) {
 	// Create or open entry at working directory
 	wd, err := os.Getwd()
 	if err != nil {

@@ -14,37 +14,14 @@ import (
 	"github.com/mikeraimondi/journalentry"
 )
 
-const commonWords = "i to the a and of is that in for it be on at this with but not"
-
-var commonWordsArray []string
-
-type result struct {
-	wordMap map[string]uint64
-	date    time.Time
-	err     error
+var cmdStats = &command{
+	UsageLine: "stats",
+	ShortHelp: "View journal statistics",
+	LongHelp:  "TODO",
+	Run:       runStats,
 }
 
-type wordStat struct {
-	word        string
-	occurrences uint64
-}
-
-func getCommonWords() []string {
-	if commonWordsArray == nil {
-		commonWordsArray = strings.Split(commonWords, " ")
-	}
-	return commonWordsArray
-}
-
-func statsCmd() gurnelCmd {
-	return gurnelCmd{
-		f:             stats,
-		condensedHelp: "View journal statistics",
-		fullHelp:      "TODO",
-	}
-}
-
-func stats(args []string) (err error) {
+func runStats(cmd *command, args []string) (err error) {
 	wd, err := os.Getwd()
 	if err != nil {
 		return errors.New("getting working directory " + err.Error())
@@ -124,6 +101,28 @@ func stats(args []string) (err error) {
 		}
 	}
 	return
+}
+
+const commonWords = "i to the a and of is that in for it be on at this with but not"
+
+var commonWordsArray []string
+
+type result struct {
+	wordMap map[string]uint64
+	date    time.Time
+	err     error
+}
+
+type wordStat struct {
+	word        string
+	occurrences uint64
+}
+
+func getCommonWords() []string {
+	if commonWordsArray == nil {
+		commonWordsArray = strings.Split(commonWords, " ")
+	}
+	return commonWordsArray
 }
 
 func walkFiles(done <-chan struct{}, root string) (<-chan string, <-chan error) {
