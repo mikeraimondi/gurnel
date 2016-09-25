@@ -36,7 +36,11 @@ func runStart(cmd *command, args []string) (err error) {
 	}
 
 	// Open file for editing
-	editCmd := strings.Split(os.Getenv("EDITOR"), " ")
+	editor := os.Getenv("GURNEL_EDITOR")
+	if len(editor) == 0 {
+		editor = os.Getenv("EDITOR")
+	}
+	editCmd := strings.Split(editor, " ")
 	editCmd = append(editCmd, p.Path)
 	startTime := time.Now()
 	if err := exec.Command(editCmd[0], editCmd[1:]...).Run(); err != nil {
