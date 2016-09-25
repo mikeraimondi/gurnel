@@ -162,8 +162,9 @@ func entryScanner(done <-chan struct{}, paths <-chan string, c chan<- result) {
 				m[strings.ToLower(string(word))]++
 			}
 		}
+		date, _ := p.Date()
 		select {
-		case c <- result{date: p.Date, wordMap: m, err: err}:
+		case c <- result{date: date, wordMap: m, err: err}:
 		case <-done:
 			return
 		}
