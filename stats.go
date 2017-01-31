@@ -11,8 +11,13 @@ import (
 	"sync"
 	"time"
 
+	"text/tabwriter"
+
 	"github.com/mikeraimondi/journalentry"
 )
+
+//go:generate go run internal/generate/generate_ref.go
+var refFreqs map[string]float64 // populated by generated code
 
 var cmdStats = &command{
 	UsageLine: "stats",
@@ -79,33 +84,50 @@ func runStats(cmd *command, args []string) (err error) {
 		fmt.Printf("Total word count: %v\n", wordCount)
 		avgCount := float64(wordCount) / entryCount
 		fmt.Printf("Average word count: %.1f\n", avgCount)
+		fmt.Print("\n")
 
-		topWordCount := 10
-		fmt.Printf("Top %v words by frequency:\n", topWordCount)
-		wordStats := make([]wordStat, len(wordMap))
+		if len(refFreqs) == 0 {
+			return // no code generation. exit early
+		}
+
+		wordStats := make([]*wordStat, len(wordMap))
 		i := 0
 		for word, count := range wordMap {
-			wordStats[i] = wordStat{word: word, occurrences: count}
+			frequency := float64(count) / float64(wordCount)
+			var relFrequency float64
+			refFrequency := refFreqs[word]
+			if frequency > refFrequency {
+				if refFrequency > 0 {
+					relFrequency = frequency / refFrequency
+				}
+			} else {
+				relFrequency = (refFrequency / frequency) * -1
+			}
+			wordStats[i] = &wordStat{word: word, occurrences: count, frequency: relFrequency}
 			i++
 		}
-		sort.Sort(descOccurences(wordStats))
-		i = 0
-		for _, ws := range wordStats {
-			if len(ws.word) > 2 && !ws.isCommon() {
-				i++
-				fmt.Println(ws.word)
-			}
-			if i >= topWordCount {
-				break
-			}
+
+		sort.Slice(wordStats, func(i, j int) bool {
+			return wordStats[i].frequency > wordStats[j].frequency
+		})
+
+		topUnusualWordCount := 100
+		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
+		fmt.Printf("Top %v unusually frequent words:\n", topUnusualWordCount)
+		for _, ws := range wordStats[:topUnusualWordCount] {
+			fmt.Fprintf(w, "%v\t%.1fX\n", ws.word, ws.frequency)
 		}
+		w.Flush()
+		fmt.Print("\n")
+		fmt.Printf("Top %v unusually infrequent words:\n", topUnusualWordCount)
+		for i := 1; i <= topUnusualWordCount; i++ {
+			ws := wordStats[len(wordStats)-i]
+			fmt.Fprintf(w, "%v\t%.1fX\n", ws.word, ws.frequency)
+		}
+		w.Flush()
 	}
 	return
 }
-
-const commonWords = "i to the a and of is that in for it be on at this with but not"
-
-var commonWordsArray []string
 
 type result struct {
 	wordMap map[string]uint64
@@ -116,13 +138,7 @@ type result struct {
 type wordStat struct {
 	word        string
 	occurrences uint64
-}
-
-func getCommonWords() []string {
-	if commonWordsArray == nil {
-		commonWordsArray = strings.Split(commonWords, " ")
-	}
-	return commonWordsArray
+	frequency   float64
 }
 
 func walkFiles(done <-chan struct{}, root string) (<-chan string, <-chan error) {
@@ -170,18 +186,3 @@ func entryScanner(done <-chan struct{}, paths <-chan string, c chan<- result) {
 		}
 	}
 }
-
-func (ws *wordStat) isCommon() bool {
-	for _, cw := range getCommonWords() {
-		if ws.word == cw {
-			return true
-		}
-	}
-	return false
-}
-
-type descOccurences []wordStat
-
-func (o descOccurences) Len() int           { return len(o) }
-func (o descOccurences) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
-func (o descOccurences) Less(i, j int) bool { return o[i].occurrences > o[j].occurrences }
