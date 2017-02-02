@@ -18,52 +18,58 @@ const (
 )
 
 func main() {
+	if err := generateRef(); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func generateRef() error {
 	if _, err := os.Stat(refFreqFile); os.IsNotExist(err) {
 		if err := getFile(); err != nil {
-			fmt.Println(err)
-			os.Exit(1) // TODO doesn't respect defer
+			return err
 		}
 	}
+
 	refFile, err := os.Open(refFreqFile)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1) // TODO doesn't respect defer
+		return err
 	}
 	defer refFile.Close()
+	zipReader, err := gzip.NewReader(refFile)
+	if err != nil {
+		return err
+	}
+	defer zipReader.Close()
+	csvReader := csv.NewReader(zipReader)
+	csvReader.FieldsPerRecord = 2
+
 	buf := &bytes.Buffer{}
 	fmt.Fprint(buf, `package main
 
   func init() {
 		refFreqs = map[string]float64{
 `)
-	zipReader, err := gzip.NewReader(refFile)
-	if err != nil {
-		fmt.Println("1", err)
-		os.Exit(1) // TODO doesn't respect defer
-	}
-	defer zipReader.Close()
-	csvReader := csv.NewReader(zipReader)
-	csvReader.FieldsPerRecord = 2
+
 	for {
 		record, err := csvReader.Read()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 		if len(record[0]) == 0 || len(record[1]) == 0 {
-			fmt.Println("invalid input")
-			os.Exit(1)
+			return fmt.Errorf("invalid input")
 		}
 		fmt.Fprintf(buf, "      \"%v\": %v,\n", strings.Replace(record[0], `"`, `\"`, -1), record[1])
 	}
+
 	fmt.Fprint(buf, "  }\n}")
 	if err := ioutil.WriteFile("ref_freqs_generated.go", buf.Bytes(), 0644); err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return err
 	}
+	return nil
 }
 
 func getFile() error {
