@@ -19,7 +19,7 @@ const (
 
 func main() {
 	if err := generateRef(); err != nil {
-		fmt.Println(err)
+		fmt.Println("error: ", err, "; exiting")
 		os.Exit(1)
 	}
 }
