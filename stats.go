@@ -13,7 +13,7 @@ import (
 
 	"text/tabwriter"
 
-	"github.com/mikeraimondi/journalentry"
+	"github.com/mikeraimondi/journalentry/v2"
 )
 
 //go:generate go run internal/generate/generate_ref.go

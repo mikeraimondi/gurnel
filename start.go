@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mikeraimondi/journalentry"
+	"github.com/mikeraimondi/journalentry/v2"
 )
 
 var cmdStart = &command{
