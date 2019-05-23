@@ -1,3 +1,10 @@
+.PHONY: build
 build:
 	go generate
-	go build
+	mkdir -p dist
+	go build -o dist/gurnel
+
+.PHONY: clean
+clean:
+	rm *_generated.go
+	rm -rf dist
