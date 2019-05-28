@@ -1,3 +1,4 @@
 *_generated.go
 reference_frequencies.csv.gz
 /dist
+.envrc

@@ -8,3 +8,7 @@ build:
 clean:
 	rm *_generated.go
 	rm -rf dist
+
+.PHONY: release
+release:
+	goreleaser
