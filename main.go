@@ -15,6 +15,13 @@ const (
 	minWordCount = 750
 )
 
+type config struct {
+	BeeminderEnabled   bool
+	BeeminderUser      string
+	BeeminderTokenFile string
+	BeeminderGoal      string
+}
+
 type command struct {
 	Run       func(cmd *command, args []string) error
 	UsageLine string

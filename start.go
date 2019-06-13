@@ -2,11 +2,17 @@ package main
 
 import (
 	"bufio"
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,7 +26,26 @@ var cmdStart = &command{
 	Run:       runStart,
 }
 
-func runStart(cmd *command, args []string) (err error) {
+func runStart(cmd *command, args []string) error {
+	// read in config
+	configDir, ok := os.LookupEnv("XDG_CONFIG_HOME")
+	if !ok {
+		homedir, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("getting user home directory: %s", err)
+		}
+		configDir = filepath.Join(homedir, ".config")
+	}
+	configData, err := ioutil.ReadFile(filepath.Join(configDir, "gurnel", "config.json"))
+	if err != nil {
+		// TODO not an error if no config
+		return fmt.Errorf("opening config file: %s", err)
+	}
+	var conf config
+	if err := json.Unmarshal(configData, &conf); err != nil {
+		return fmt.Errorf("parsing config: %s", err)
+	}
+
 	// Create or open entry at working directory
 	wd, err := os.Getwd()
 	if err != nil {
@@ -92,14 +117,87 @@ func runStart(cmd *command, args []string) (err error) {
 					return errors.New("committing file " + err.Error())
 				}
 				fmt.Println("Committed")
-				return
+
+				token, err := ioutil.ReadFile(conf.BeeminderTokenFile)
+				if err != nil {
+					return fmt.Errorf("reading token: %s", err)
+				}
+				client, err := newBeeminderClient(conf.BeeminderUser, token)
+				if err != nil {
+					return fmt.Errorf("setting up client: %s", err)
+				}
+				err = client.postDatapoint(conf.BeeminderGoal, wordCount)
+				if err != nil {
+					return fmt.Errorf("posting to Beeminder: %s", err)
+				}
+
+				return nil
 			} else if input == "n" {
 				fmt.Println("Exiting")
-				return
+				return nil
 			} else {
 				fmt.Println("Unrecognized input")
 			}
 		}
 	}
-	return
+
+	return nil
+}
+
+type beeminderClient struct {
+	Token     []byte
+	User      string
+	c         http.Client
+	serverURL string
+}
+
+func newBeeminderClient(user string, token []byte) (*beeminderClient, error) {
+	if len(user) == 0 {
+		return nil, fmt.Errorf("user must not be blank")
+	}
+	if token != nil && len(token) == 0 {
+		return nil, fmt.Errorf("token must not be blank")
+	}
+
+	return &beeminderClient{
+		Token:     bytes.TrimSpace(token),
+		User:      user,
+		serverURL: "https://www.beeminder.com",
+	}, nil
+}
+
+func (client *beeminderClient) postDatapoint(goal string, count int) error {
+	if len(goal) == 0 {
+		return fmt.Errorf("goal must not be blank")
+	}
+	if count < 0 {
+		return fmt.Errorf("count must be nonnegative")
+	}
+
+	postURL, err := url.Parse(client.serverURL)
+	if err != nil {
+		return fmt.Errorf("internal URL error: %s", err)
+	}
+	postURL.Path = fmt.Sprintf("api/v1/users/%s/goals/%s/datapoints.json",
+		client.User, goal)
+
+	v := url.Values{}
+	v.Set("auth_token", string(client.Token))
+	v.Set("value", strconv.Itoa(count))
+	v.Set("comment", "via Gurnel at "+time.Now().Format("15:04:05 MST"))
+
+	resp, err := client.c.PostForm(postURL.String(), v)
+	if err != nil {
+		return fmt.Errorf("making request: %s", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		respData, err := ioutil.ReadAll(resp.Body)
+		if err != nil || len(respData) == 0 {
+			respData = []byte("no further info")
+		}
+		return fmt.Errorf("server returned %s: %s", resp.Status, respData)
+	}
+	return nil
 }
