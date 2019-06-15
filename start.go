@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -23,23 +22,9 @@ var cmdStart = &command{
 }
 
 func runStart(cmd *command, args []string) error {
-	// read in config
-	configDir, ok := os.LookupEnv("XDG_CONFIG_HOME")
-	if !ok {
-		homedir, err := os.UserHomeDir()
-		if err != nil {
-			return fmt.Errorf("getting user home directory: %s", err)
-		}
-		configDir = filepath.Join(homedir, ".config")
-	}
-	configData, err := ioutil.ReadFile(filepath.Join(configDir, "gurnel", "config.json"))
-	if err != nil {
-		// TODO not an error if no config
-		return fmt.Errorf("opening config file: %s", err)
-	}
 	var conf config
-	if err := json.Unmarshal(configData, &conf); err != nil {
-		return fmt.Errorf("parsing config: %s", err)
+	if err := conf.load("gurnel", "gurnel.json"); err != nil {
+		return fmt.Errorf("loading config: %s", err)
 	}
 
 	// Create or open entry at working directory
