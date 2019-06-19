@@ -21,13 +21,34 @@ func (tdp *testDirProvider) getHomeDir() (string, error) {
 
 func TestLoadConfig(t *testing.T) {
 	testCases := []struct {
-		desc string
-		conf config
+		desc          string
+		preLoadConfFn func(string) config
+		postLoadConf  config
 	}{
 		{
 			desc: "with an existing valid file",
-			conf: config{
+			preLoadConfFn: func(dir string) config {
+				return config{
+					dp: &testDirProvider{
+						configDir: dir,
+					},
+				}
+			},
+			postLoadConf: config{
 				BeeminderEnabled: true,
+			},
+		},
+		{
+			desc: "with no existing file",
+			preLoadConfFn: func(_ string) config {
+				return config{
+					dp: &testDirProvider{
+						configDir: "/not/a/real/directory942310",
+					},
+				}
+			},
+			postLoadConf: config{
+				BeeminderEnabled: false,
 			},
 		},
 	}
@@ -39,22 +60,18 @@ func TestLoadConfig(t *testing.T) {
 			}
 			defer file.Close()
 			// TODO delete file
-			if err := json.NewEncoder(file).Encode(&tC.conf); err != nil {
+			if err := json.NewEncoder(file).Encode(&tC.postLoadConf); err != nil {
 				t.Fatalf("writing to temp file: %s", err)
 			}
 
-			c := config{
-				dp: &testDirProvider{
-					configDir: filepath.Dir(file.Name()),
-				},
-			}
+			c := tC.preLoadConfFn(filepath.Dir(file.Name()))
 			if err := c.load(filepath.Base(file.Name())); err != nil {
 				t.Fatalf("expected no error loading config. got %s", err)
 			}
 
-			if tC.conf.BeeminderEnabled != c.BeeminderEnabled {
+			if tC.postLoadConf.BeeminderEnabled != c.BeeminderEnabled {
 				t.Fatalf("wrong value for BeeminderEnabled. expected %t. got %t",
-					tC.conf.BeeminderEnabled, c.BeeminderEnabled)
+					tC.postLoadConf.BeeminderEnabled, c.BeeminderEnabled)
 			}
 		})
 	}
