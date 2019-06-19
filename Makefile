@@ -15,6 +15,7 @@ release:
 	go mod tidy
 	git tag $(VERSION)
 	goreleaser
+	make clean
 
 check_defined = \
     $(strip $(foreach 1,$1, \
