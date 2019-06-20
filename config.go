@@ -8,6 +8,11 @@ import (
 	"path/filepath"
 )
 
+type dirProvider interface {
+	getConfigDir() (string, bool)
+	getHomeDir() (string, error)
+}
+
 type config struct {
 	BeeminderEnabled   bool
 	BeeminderUser      string
@@ -41,11 +46,6 @@ func (c *config) load(path ...string) error {
 		return fmt.Errorf("opening file: %s", err)
 	}
 	return json.Unmarshal(configData, c)
-}
-
-type dirProvider interface {
-	getConfigDir() (string, bool)
-	getHomeDir() (string, error)
 }
 
 func (c *config) getConfigDir() (string, error) {
