@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"flag"
 	"fmt"
 	"math"
 	"os"
@@ -19,14 +20,14 @@ import (
 //go:generate go run internal/generate/generate_ref.go
 var refFreqs map[string]float64 // populated by generated code
 
-var cmdStats = &command{
-	UsageLine: "stats",
-	ShortHelp: "View journal statistics",
-	LongHelp:  "TODO",
-	Run:       runStats,
-}
+type statsCmd struct{}
 
-func runStats(cmd *command, args []string) (err error) {
+func (*statsCmd) Name() string       { return "stats" }
+func (*statsCmd) ShortHelp() string  { return "View journal statistics" }
+func (*statsCmd) LongHelp() string   { return "TODO" }
+func (*statsCmd) Flag() flag.FlagSet { return flag.FlagSet{} }
+
+func (*statsCmd) Run(conf *config, args []string) error {
 	wd, err := os.Getwd()
 	if err != nil {
 		return errors.New("getting working directory " + err.Error())
@@ -87,7 +88,7 @@ func runStats(cmd *command, args []string) (err error) {
 		fmt.Print("\n")
 
 		if len(refFreqs) == 0 {
-			return // no code generation. exit early
+			return nil // no code generation. exit early
 		}
 
 		wordStats := make([]*wordStat, len(wordMap))
@@ -126,7 +127,7 @@ func runStats(cmd *command, args []string) (err error) {
 		}
 		w.Flush()
 	}
-	return
+	return nil
 }
 
 type result struct {

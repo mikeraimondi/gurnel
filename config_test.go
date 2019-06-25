@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -106,7 +107,7 @@ func TestGetConfigDir(t *testing.T) {
 	for _, tC := range testCases {
 		t.Run(tC.desc, func(t *testing.T) {
 			tC.pre.getConfigDir()
-			if tC.pre != tC.post {
+			if !reflect.DeepEqual(tC.pre, tC.post) {
 				t.Fatalf("wrong config after load.\nexpected: %+v\ngot: %+v",
 					tC.post, tC.pre)
 			}

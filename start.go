@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"errors"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -14,19 +15,14 @@ import (
 	"github.com/mikeraimondi/journalentry/v2"
 )
 
-var cmdStart = &command{
-	UsageLine: "start",
-	ShortHelp: "Begin journal entry for today",
-	LongHelp:  "TODO",
-	Run:       runStart,
-}
+type startCmd struct{}
 
-func runStart(cmd *command, args []string) error {
-	var conf config
-	if err := conf.load("gurnel", "gurnel.json"); err != nil {
-		return fmt.Errorf("loading config: %s", err)
-	}
+func (*startCmd) Name() string       { return "start" }
+func (*startCmd) ShortHelp() string  { return "Begin journal entry for today" }
+func (*startCmd) LongHelp() string   { return "TODO" }
+func (*startCmd) Flag() flag.FlagSet { return flag.FlagSet{} }
 
+func (*startCmd) Run(conf *config, args []string) error {
 	// Create or open entry at working directory
 	wd, err := os.Getwd()
 	if err != nil {

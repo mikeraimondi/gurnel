@@ -15,65 +15,69 @@ const (
 	minWordCount = 750
 )
 
-type command struct {
-	Run       func(cmd *command, args []string) error
-	UsageLine string
-	ShortHelp string
-	LongHelp  string
-	Flag      flag.FlagSet
-}
-
-func (c *command) Name() string {
-	name := c.UsageLine
-	i := strings.Index(name, " ")
-	if i >= 0 {
-		name = name[:i]
-	}
-	return name
-}
-
-func (c *command) usage() {
-	fmt.Fprintf(os.Stderr, "usage: %s\n\n", c.UsageLine)
-	os.Exit(2)
-}
-
-var commands = []*command{
-	cmdStart,
-	cmdStats,
+type subcommand interface {
+	Run(c *config, args []string) error
+	Name() string
+	ShortHelp() string
+	LongHelp() string
+	Flag() flag.FlagSet
 }
 
 func main() {
-	flag.Usage = usage
+	if err := do(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %s", err)
+		os.Exit(2)
+	}
+}
+
+func do() error {
+	var conf config
+	if err := conf.load("gurnel", "gurnel.json"); err != nil {
+		return fmt.Errorf("loading config: %s", err)
+	}
+
+	flag.Usage = func() {
+		printUsage(conf.subcommands, os.Stderr)
+	}
 	flag.Parse()
 
 	args := flag.Args()
 	if len(args) < 1 {
-		usage()
+		printUsage(conf.subcommands, os.Stderr)
+		return fmt.Errorf("no subcommand supplied. Did you mean 'gurnel start'?")
 	}
 
 	if args[0] == "help" {
-		help(args[1:])
-		return
+		help(conf.subcommands, args[1:])
+		return nil
 	}
 
-	for _, cmd := range commands {
-		if cmd.Name() == args[0] && cmd.Run != nil {
-			cmd.Flag.Usage = func() { cmd.usage() }
-			cmd.Flag.Parse(args[1:])
-			args = cmd.Flag.Args()
-			if err := cmd.Run(cmd, args); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v", err)
-				os.Exit(2)
+	for _, cmd := range conf.subcommands {
+		if cmd.Name() == args[0] {
+			flagSet := cmd.Flag()
+			flagSet.Usage = func() {
+				fmt.Fprintf(os.Stderr, "usage: %s\n\n", cmd.Name())
 			}
-			return
+			if err := flagSet.Parse(args[1:]); err != nil {
+				return fmt.Errorf("parsing flags: %s", err)
+			}
+			args = flagSet.Args()
+			if err := cmd.Run(&conf, args); err != nil {
+				return err
+			}
+			return nil
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "gurnel: unknown subcommand %q\n Run 'gurnel help' for usage.\n", args[0])
-	os.Exit(2)
+	return fmt.Errorf(
+		"gurnel: unknown subcommand %q\n Run 'gurnel help' for usage.\n",
+		args[0],
+	)
 }
 
-var usageTemplate = `Gurnel is a simple journal manager.
+func printUsage(commands []subcommand, w io.Writer) {
+	bw := bufio.NewWriter(w)
+	usageTemplate := `Gurnel is a simple journal manager.
 
 Usage:
 
@@ -84,25 +88,13 @@ The commands are:
   {{.Name | printf "%-11s"}} {{.ShortHelp}}{{end}}
 Use "gurnel help [command]" for more information about a command.
 `
-
-var helpTemplate = `usage: gurnel {{.UsageLine}}
-{{.LongHelp | trim}}
-`
-
-func printUsage(w io.Writer) {
-	bw := bufio.NewWriter(w)
 	tmpl(bw, usageTemplate, commands)
 	bw.Flush()
 }
 
-func usage() {
-	printUsage(os.Stderr)
-	os.Exit(2)
-}
-
-func help(args []string) {
+func help(commands []subcommand, args []string) {
 	if len(args) == 0 {
-		printUsage(os.Stdout)
+		printUsage(commands, os.Stdout)
 		return
 	}
 	if len(args) != 1 {
@@ -112,6 +104,7 @@ func help(args []string) {
 
 	arg := args[0]
 
+	helpTemplate := "usage: gurnel {{.Name}}\n{{.LongHelp | trim}}"
 	for _, cmd := range commands {
 		if cmd.Name() == arg {
 			tmpl(os.Stdout, helpTemplate, cmd)

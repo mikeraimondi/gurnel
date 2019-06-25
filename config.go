@@ -19,6 +19,7 @@ type config struct {
 	BeeminderTokenFile string
 	BeeminderGoal      string
 	dp                 dirProvider
+	subcommands        []subcommand
 }
 
 type defaultDirProvider struct{}
@@ -32,6 +33,8 @@ func (dp *defaultDirProvider) getHomeDir() (string, error) {
 }
 
 func (c *config) load(path ...string) error {
+	c.setupSubcommands()
+
 	dir, err := c.getConfigDir()
 	if err != nil {
 		return fmt.Errorf("getting config directory: %s", err)
@@ -63,4 +66,13 @@ func (c *config) getConfigDir() (string, error) {
 		return "", fmt.Errorf("getting home directory: %s", err)
 	}
 	return filepath.Join(homeDir, ".config"), nil
+}
+
+func (c *config) setupSubcommands() {
+	if len(c.subcommands) == 0 {
+		c.subcommands = []subcommand{
+			&startCmd{},
+			&statsCmd{},
+		}
+	}
 }
