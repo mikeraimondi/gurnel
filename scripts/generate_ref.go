@@ -12,11 +12,6 @@ import (
 	"strings"
 )
 
-const (
-	refFreqURL  = "https://github.com/mikeraimondi/word_frequencies/raw/master/dist/eng-us-10000-1960.csv.gz"
-	refFreqFile = "reference_frequencies.csv.gz"
-)
-
 func main() {
 	if err := generateRef(); err != nil {
 		fmt.Println("error: ", err, "; exiting")
@@ -25,18 +20,15 @@ func main() {
 }
 
 func generateRef() error {
-	if _, err := os.Stat(refFreqFile); os.IsNotExist(err) {
-		if err := getFile(); err != nil {
-			return err
-		}
-	}
-
-	refFile, err := os.Open(refFreqFile)
+	resp, err := http.Get(
+		"https://github.com/mikeraimondi/word_frequencies/raw/master/dist/eng-us-10000-1960.csv.gz",
+	)
 	if err != nil {
 		return err
 	}
-	defer refFile.Close()
-	zipReader, err := gzip.NewReader(refFile)
+	defer resp.Body.Close()
+
+	zipReader, err := gzip.NewReader(resp.Body)
 	if err != nil {
 		return err
 	}
@@ -67,23 +59,6 @@ func generateRef() error {
 
 	fmt.Fprint(buf, "  }\n}")
 	if err := ioutil.WriteFile("ref_freqs_generated.go", buf.Bytes(), 0644); err != nil {
-		return err
-	}
-	return nil
-}
-
-func getFile() error {
-	resp, err := http.Get(refFreqURL)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	f, err := os.Create(refFreqFile)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	if _, err := io.Copy(f, resp.Body); err != nil {
 		return err
 	}
 	return nil
