@@ -1,4 +1,4 @@
-package main
+package gurnel
 
 import (
 	"errors"
@@ -10,14 +10,13 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
-
 	"text/tabwriter"
+	"time"
 
 	"github.com/mikeraimondi/journalentry/v2"
 )
 
-//go:generate go run internal/generate/generate_ref.go
+//go:generate go run ../../scripts/generate_ref.go
 var refFreqs map[string]float64 // populated by generated code
 
 type statsCmd struct{}

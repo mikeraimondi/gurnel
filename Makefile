@@ -1,13 +1,16 @@
 .PHONY: build
-build:
-	go generate
+build: generate
 	mkdir -p dist
-	go build -o dist/gurnel
+	go build -o dist/gurnel cmd/gurnel/main.go
+
+.PHONY: generate
+generate:
+	go generate github.com/mikeraimondi/gurnel/internal/gurnel
 
 .PHONY: clean
 clean:
-	-rm -f *_generated.go
-	-rm -rf dist
+	find . -type f -name '*_generated.go' -delete
+	rm -rf dist
 
 .PHONY: release
 release:

@@ -1,4 +1,4 @@
-package main
+package gurnel
 
 import (
 	"bufio"
@@ -23,14 +23,7 @@ type subcommand interface {
 	Flag() flag.FlagSet
 }
 
-func main() {
-	if err := do(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s", err)
-		os.Exit(2)
-	}
-}
-
-func do() error {
+func Do() error {
 	var conf config
 	if err := conf.load("gurnel", "gurnel.json"); err != nil {
 		return fmt.Errorf("loading config: %s", err)

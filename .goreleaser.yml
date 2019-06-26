@@ -1,10 +1,11 @@
 before:
   hooks:
     - go mod download
-    - go generate ./...
+    - make generate
 builds:
 - env:
   - CGO_ENABLED=0
+  main: ./cmd/gurnel/main.go
 archives:
 - replacements:
     darwin: Darwin
@@ -22,8 +23,8 @@ changelog:
     exclude:
     - '^docs:'
     - '^test:'
-brew:
-  github:
+brews:
+- github:
     owner: mikeraimondi
     name: homebrew-tap
   commit_author:

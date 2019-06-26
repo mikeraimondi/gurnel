@@ -45,7 +45,7 @@ func generateRef() error {
 	csvReader.FieldsPerRecord = 2
 
 	buf := &bytes.Buffer{}
-	fmt.Fprint(buf, `package main
+	fmt.Fprint(buf, `package gurnel
 
   func init() {
 		refFreqs = map[string]float64{
