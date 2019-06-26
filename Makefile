@@ -13,11 +13,14 @@ clean:
 	rm -rf dist
 
 .PHONY: release
-release:
+release: clean
 	@:$(call check_defined, VERSION, version to release)
 	go mod tidy
 	git tag $(VERSION)
-	goreleaser
+
+.PHONY: publish
+publish: release
+	goreleaser release --config=build/package/.goreleaser.yml
 	make clean
 
 check_defined = \
