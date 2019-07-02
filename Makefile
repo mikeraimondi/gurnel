@@ -7,13 +7,17 @@ build: generate
 generate:
 	go generate github.com/mikeraimondi/gurnel/internal/gurnel
 
+.PHONY: lint
+lint:
+	golangci-lint run -c build/.golangci.yml
+
 .PHONY: clean
 clean:
 	find . -type f -name '*_generated.go' -delete
 	rm -rf dist
 
 .PHONY: release
-release: clean
+release: lint clean
 	@:$(call check_defined, VERSION, version to release)
 	go mod tidy
 	git tag $(VERSION)
