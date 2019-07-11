@@ -1,11 +1,10 @@
 .PHONY: build
-build: generate
+build:
+	go mod download
 	mkdir -p dist
+	./scripts/bindata.sh
 	go build -o dist/gurnel cmd/gurnel/main.go
-
-.PHONY: generate
-generate:
-	go generate github.com/mikeraimondi/gurnel/internal/gurnel
+	./scripts/bindata_debug.sh
 
 .PHONY: lint
 lint:
@@ -13,7 +12,6 @@ lint:
 
 .PHONY: clean
 clean:
-	find . -type f -name '*_generated.go' -delete
 	rm -rf dist
 
 .PHONY: release
@@ -24,8 +22,11 @@ release: lint clean
 
 .PHONY: publish
 publish: release
+	go mod download
+	./scripts/bindata.sh
 	goreleaser release --config=build/package/.goreleaser.yml
 	make clean
+	./scripts/bindata_debug.sh
 
 check_defined = \
     $(strip $(foreach 1,$1, \

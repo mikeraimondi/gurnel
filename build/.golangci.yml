@@ -7,14 +7,13 @@ linters:
   enable-all: true
   disable:
     - maligned
+    - gocyclo
 
 linters-settings:
   govet:
     check-shadowing: true
   golint:
     min-confidence: 0
-  gocyclo:
-    min-complexity: 10
   dupl:
     threshold: 100
   goconst:

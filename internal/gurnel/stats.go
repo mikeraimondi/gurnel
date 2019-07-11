@@ -1,13 +1,17 @@
 package gurnel
 
 import (
+	"bytes"
+	"encoding/csv"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"text/tabwriter"
@@ -15,9 +19,6 @@ import (
 
 	"github.com/mikeraimondi/journalentry/v2"
 )
-
-//go:generate go run ../../scripts/generate_ref.go
-var refFreqs map[string]float64 // populated by generated code
 
 type statsCmd struct{}
 
@@ -27,6 +28,33 @@ func (*statsCmd) LongHelp() string   { return "TODO" }
 func (*statsCmd) Flag() flag.FlagSet { return flag.FlagSet{} }
 
 func (*statsCmd) Run(conf *config, args []string) error {
+	refFreqsCSV, err := Asset("eng-us-10000-1960.csv")
+	if err != nil {
+		return fmt.Errorf("loading asset: %s", err)
+	}
+	csvReader := csv.NewReader(bytes.NewReader(refFreqsCSV))
+	csvReader.FieldsPerRecord = 2
+
+	refFreqs := make(map[string]float64)
+	for {
+		record, csvErr := csvReader.Read()
+		if csvErr == io.EOF {
+			break
+		}
+		if csvErr != nil {
+			return csvErr
+		}
+
+		if record[0] == "" || record[1] == "" {
+			return fmt.Errorf("invalid input")
+		}
+		freq, csvErr := strconv.ParseFloat(record[1], 64)
+		if csvErr != nil {
+			return fmt.Errorf("invalid frequency: %s", csvErr)
+		}
+		refFreqs[strings.ReplaceAll(record[0], `"`, `\"`)] = freq
+	}
+
 	wd, err := os.Getwd()
 	if err != nil {
 		return errors.New("getting working directory " + err.Error())
@@ -141,9 +169,12 @@ type wordStat struct {
 	frequency   float64
 }
 
-func walkFiles(done <-chan struct{}, root string) (<-chan string, <-chan error) {
-	paths := make(chan string)
-	errc := make(chan error, 1)
+func walkFiles(
+	done <-chan struct{},
+	root string,
+) (paths chan string, errc chan error) {
+	paths = make(chan string)
+	errc = make(chan error, 1)
 	visited := make(map[string]bool)
 	go func() {
 		// Close the paths channel after Walk returns.
