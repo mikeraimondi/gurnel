@@ -1,32 +1,41 @@
 .PHONY: build
-build:
+build: compile post
+
+.PHONY: pre
+pre:
 	go mod download
-	mkdir -p dist
 	./scripts/bindata.sh
+
+.PHONY: compile
+compile: pre
+	mkdir -p dist
 	go build -o dist/gurnel cmd/gurnel/main.go
+
+.PHONY: post
+post:
 	./scripts/bindata_debug.sh
 
 .PHONY: lint
 lint:
 	golangci-lint run -c build/.golangci.yml
 
+.PHONY: test
+test:
+	go test ./... -v -race
+
 .PHONY: clean
 clean:
 	rm -rf dist
 
 .PHONY: release
-release: lint clean
+release: test lint clean
 	@:$(call check_defined, VERSION, version to release)
 	go mod tidy
 	git tag $(VERSION)
+	goreleaser release --config=build/package/.goreleaser.yml
 
 .PHONY: publish
-publish: release
-	go mod download
-	./scripts/bindata.sh
-	goreleaser release --config=build/package/.goreleaser.yml
-	make clean
-	./scripts/bindata_debug.sh
+publish: pre release post clean
 
 check_defined = \
     $(strip $(foreach 1,$1, \
