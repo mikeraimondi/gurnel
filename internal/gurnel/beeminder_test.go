@@ -70,7 +70,7 @@ func TestBeeminderPostServerErrors(t *testing.T) {
 					t.Fatalf("wrong error message. expected an error containing %q. got %q",
 						tt.returnBody, err)
 				}
-				if expectedMsg := "no further info"; len(tt.returnBody) == 0 &&
+				if expectedMsg := "no further info"; tt.returnBody == "" &&
 					!strings.Contains(err.Error(), expectedMsg) {
 					t.Fatalf("wrong error message. expected an error containing %q. got %q",
 						expectedMsg, err)
@@ -247,7 +247,7 @@ func TestBeeminderClient(t *testing.T) {
 			}
 
 			err := client.postDatapoint("test", 10)
-			if len(tt.expectedErr) == 0 {
+			if tt.expectedErr == "" {
 				if err != nil {
 					t.Fatalf("expected no error. got %q", err)
 				}

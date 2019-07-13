@@ -24,8 +24,12 @@ type statsCmd struct{}
 
 func (*statsCmd) Name() string       { return "stats" }
 func (*statsCmd) ShortHelp() string  { return "View journal statistics" }
-func (*statsCmd) LongHelp() string   { return "TODO" }
 func (*statsCmd) Flag() flag.FlagSet { return flag.FlagSet{} }
+
+func (*statsCmd) LongHelp() string {
+	return "Unusually frequent/infrequent words are relative " +
+		"to a Google Ngram corpus of scanned literature"
+}
 
 func (*statsCmd) Run(conf *config, args []string) error {
 	refFreqsCSV, err := Asset("eng-us-10000-1960.csv")

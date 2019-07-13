@@ -18,7 +18,7 @@ type beeminderClient struct {
 }
 
 func newBeeminderClient(user string, token []byte) (*beeminderClient, error) {
-	if len(user) == 0 {
+	if user == "" {
 		return nil, fmt.Errorf("user must not be blank")
 	}
 	if token != nil && len(token) == 0 {
@@ -33,7 +33,7 @@ func newBeeminderClient(user string, token []byte) (*beeminderClient, error) {
 }
 
 func (client *beeminderClient) postDatapoint(goal string, count int) error {
-	if len(goal) == 0 {
+	if goal == "" {
 		return fmt.Errorf("goal must not be blank")
 	}
 	if count < 0 {

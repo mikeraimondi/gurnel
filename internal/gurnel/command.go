@@ -46,24 +46,27 @@ func Do() error {
 	}
 
 	for _, cmd := range conf.subcommands {
-		if cmd.Name() == args[0] {
-			flagSet := cmd.Flag()
-			flagSet.Usage = func() {
-				fmt.Fprintf(os.Stderr, "usage: %s\n\n", cmd.Name())
-			}
-			if err := flagSet.Parse(args[1:]); err != nil {
-				return fmt.Errorf("parsing flags: %s", err)
-			}
-			args = flagSet.Args()
-			if err := cmd.Run(&conf, args); err != nil {
-				return err
-			}
-			return nil
+		if cmd.Name() != args[0] {
+			continue
 		}
+
+		flagSet := cmd.Flag()
+		name := cmd.Name()
+		flagSet.Usage = func() {
+			fmt.Fprintf(os.Stderr, "usage: %s\n\n", name)
+		}
+		if err := flagSet.Parse(args[1:]); err != nil {
+			return fmt.Errorf("parsing flags: %s", err)
+		}
+		args = flagSet.Args()
+		if err := cmd.Run(&conf, args); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	return fmt.Errorf(
-		"gurnel: unknown subcommand %q\n Run 'gurnel help' for usage.\n",
+		"unknown subcommand %q\n Run 'gurnel help' for usage",
 		args[0],
 	)
 }

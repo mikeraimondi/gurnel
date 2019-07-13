@@ -19,8 +19,11 @@ type startCmd struct{}
 
 func (*startCmd) Name() string       { return "start" }
 func (*startCmd) ShortHelp() string  { return "Begin journal entry for today" }
-func (*startCmd) LongHelp() string   { return "TODO" }
 func (*startCmd) Flag() flag.FlagSet { return flag.FlagSet{} }
+
+func (*startCmd) LongHelp() string {
+	return "If you don't like the editor this uses, set $EDITOR to something else."
+}
 
 func (*startCmd) Run(conf *config, args []string) error {
 	// Create or open entry at working directory
@@ -39,20 +42,20 @@ func (*startCmd) Run(conf *config, args []string) error {
 
 	// Open file for editing
 	editor := os.Getenv("GURNEL_EDITOR")
-	if len(editor) == 0 {
+	if editor == "" {
 		editor = os.Getenv("EDITOR")
 	}
 	editCmd := strings.Split(editor, " ")
 	editCmd = append(editCmd, p.Path)
 	startTime := time.Now()
-	if err := exec.Command(editCmd[0], editCmd[1:]...).Run(); err != nil {
+	if err = exec.Command(editCmd[0], editCmd[1:]...).Run(); err != nil {
 		return errors.New("opening editor " + err.Error())
 	}
 	elapsed := time.Since(startTime)
 
 	// Abort if file is untouched
-	if modified, err := p.Load(); err != nil {
-		return errors.New("loading file " + err.Error())
+	if modified, modErr := p.Load(); modErr != nil {
+		return errors.New("loading file " + modErr.Error())
 	} else if !modified {
 		fmt.Println("Aborting due to unchanged file")
 		return nil
@@ -67,13 +70,13 @@ func (*startCmd) Run(conf *config, args []string) error {
 		fmt.Printf("---begin entry preview---\n%v\n--end entry preview---\n", string(p.Body))
 
 		// Collect & set metadata
-		if err := p.PromptForMetadata(os.Stdin, os.Stdout); err != nil {
-			return errors.New("collecting metadata " + err.Error())
+		if promptErr := p.PromptForMetadata(os.Stdin, os.Stdout); promptErr != nil {
+			return errors.New("collecting metadata " + promptErr.Error())
 		}
 	}
 	p.Seconds += uint16(elapsed.Seconds())
-	if err := p.Save(); err != nil {
-		return errors.New("saving file " + err.Error())
+	if saveErr := p.Save(); saveErr != nil {
+		return errors.New("saving file " + saveErr.Error())
 	}
 
 	if wordCount > minWordCount {
@@ -83,7 +86,8 @@ func (*startCmd) Run(conf *config, args []string) error {
 			fmt.Print("Commit? (y/n) ")
 			input, _ := reader.ReadString('\n')
 			input = strings.TrimSpace(input)
-			if input == "y" {
+			switch input {
+			case "y":
 				// Commit the changes
 				err = exec.Command("git", "add", p.Path).Run()
 				if err != nil {
@@ -109,10 +113,10 @@ func (*startCmd) Run(conf *config, args []string) error {
 				}
 
 				return nil
-			} else if input == "n" {
+			case "n":
 				fmt.Println("Exiting")
 				return nil
-			} else {
+			default:
 				fmt.Println("Unrecognized input")
 			}
 		}

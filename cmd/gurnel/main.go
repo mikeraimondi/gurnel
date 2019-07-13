@@ -9,7 +9,7 @@ import (
 
 func main() {
 	if err := gurnel.Do(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s", err)
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		os.Exit(2)
 	}
 }
