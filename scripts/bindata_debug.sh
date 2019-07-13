@@ -4,4 +4,4 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-go-bindata -o internal/gurnel/bindata.go -pkg gurnel -prefix assets -debug assets
+go-bindata -o internal/bindata/bindata.go -pkg bindata -prefix assets -debug assets

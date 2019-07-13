@@ -17,6 +17,7 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/mikeraimondi/gurnel/internal/bindata"
 	"github.com/mikeraimondi/journalentry/v2"
 )
 
@@ -32,7 +33,7 @@ func (*statsCmd) LongHelp() string {
 }
 
 func (*statsCmd) Run(conf *config, args []string) error {
-	refFreqsCSV, err := Asset("eng-us-10000-1960.csv")
+	refFreqsCSV, err := bindata.Asset("eng-us-10000-1960.csv")
 	if err != nil {
 		return fmt.Errorf("loading asset: %s", err)
 	}
