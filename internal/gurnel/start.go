@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -25,7 +26,7 @@ func (*startCmd) LongHelp() string {
 	return "If you don't like the editor this uses, set $EDITOR to something else."
 }
 
-func (*startCmd) Run(conf *config, args []string) error {
+func (*startCmd) Run(w io.Writer, args []string, conf *config) error {
 	// Create or open entry at working directory
 	wd, err := os.Getwd()
 	if err != nil {
@@ -57,17 +58,17 @@ func (*startCmd) Run(conf *config, args []string) error {
 	if modified, modErr := p.Load(); modErr != nil {
 		return errors.New("loading file " + modErr.Error())
 	} else if !modified {
-		fmt.Println("Aborting due to unchanged file")
+		fmt.Fprintln(w, "Aborting due to unchanged file")
 		return nil
 	}
 
 	// Check word count before proceeding to metadata collection
 	wordCount := len(p.Words())
-	fmt.Printf("%v words in entry\n", wordCount)
+	fmt.Fprintf(w, "%v words in entry\n", wordCount)
 	if wordCount < minWordCount {
-		fmt.Printf("Minimum word count is %v. Insufficient word count to commit\n", minWordCount)
+		fmt.Fprintf(w, "Minimum word count is %v. Insufficient word count to commit\n", minWordCount)
 	} else {
-		fmt.Printf("---begin entry preview---\n%v\n--end entry preview---\n", string(p.Body))
+		fmt.Fprintf(w, "---begin entry preview---\n%v\n--end entry preview---\n", string(p.Body))
 
 		// Collect & set metadata
 		if promptErr := p.PromptForMetadata(os.Stdin, os.Stdout); promptErr != nil {
@@ -97,7 +98,7 @@ func (*startCmd) Run(conf *config, args []string) error {
 				if err != nil {
 					return errors.New("committing file " + err.Error())
 				}
-				fmt.Println("Committed")
+				fmt.Fprintln(w, "Committed")
 
 				token, err := ioutil.ReadFile(conf.BeeminderTokenFile)
 				if err != nil {
@@ -114,10 +115,10 @@ func (*startCmd) Run(conf *config, args []string) error {
 
 				return nil
 			case "n":
-				fmt.Println("Exiting")
+				fmt.Fprintln(w, "Exiting")
 				return nil
 			default:
-				fmt.Println("Unrecognized input")
+				fmt.Fprintln(w, "Unrecognized input")
 			}
 		}
 	}

@@ -32,7 +32,7 @@ func (*statsCmd) LongHelp() string {
 		"to a Google Ngram corpus of scanned literature"
 }
 
-func (*statsCmd) Run(conf *config, args []string) error {
+func (*statsCmd) Run(w io.Writer, args []string, conf *config) error {
 	refFreqsCSV, err := bindata.Asset("eng-us-10000-1960.csv")
 	if err != nil {
 		return fmt.Errorf("loading asset: %s", err)
@@ -109,15 +109,15 @@ func (*statsCmd) Run(conf *config, args []string) error {
 	if entryCount > 0 {
 		percent := entryCount / math.Floor(t.Sub(minDate).Hours()/24)
 		const outFormat = "Jan 2 2006"
-		fmt.Printf("%.2f%% of days journaled since %v\n", percent*100, minDate.Format(outFormat))
+		fmt.Fprintf(w, "%.2f%% of days journaled since %v\n", percent*100, minDate.Format(outFormat))
 		var wordCount uint64
 		for _, count := range wordMap {
 			wordCount += count
 		}
-		fmt.Printf("Total word count: %v\n", wordCount)
+		fmt.Fprintf(w, "Total word count: %v\n", wordCount)
 		avgCount := float64(wordCount) / entryCount
-		fmt.Printf("Average word count: %.1f\n", avgCount)
-		fmt.Print("\n")
+		fmt.Fprintf(w, "Average word count: %.1f\n", avgCount)
+		fmt.Fprint(w, "\n")
 
 		if len(refFreqs) == 0 {
 			return nil // no code generation. exit early
@@ -146,13 +146,13 @@ func (*statsCmd) Run(conf *config, args []string) error {
 
 		topUnusualWordCount := 100
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-		fmt.Printf("Top %v unusually frequent words:\n", topUnusualWordCount)
+		fmt.Fprintf(w, "Top %v unusually frequent words:\n", topUnusualWordCount)
 		for _, ws := range wordStats[:topUnusualWordCount] {
 			fmt.Fprintf(w, "%v\t%.1fX\n", ws.word, ws.frequency)
 		}
 		w.Flush()
-		fmt.Print("\n")
-		fmt.Printf("Top %v unusually infrequent words:\n", topUnusualWordCount)
+		fmt.Fprint(w, "\n")
+		fmt.Fprintf(w, "Top %v unusually infrequent words:\n", topUnusualWordCount)
 		for i := 1; i <= topUnusualWordCount; i++ {
 			ws := wordStats[len(wordStats)-i]
 			fmt.Fprintf(w, "%v\t%.1fX\n", ws.word, ws.frequency)

@@ -16,7 +16,7 @@ const (
 )
 
 type subcommand interface {
-	Run(c *config, args []string) error
+	Run(io.Writer, []string, *config) error
 	Name() string
 	ShortHelp() string
 	LongHelp() string
@@ -59,7 +59,7 @@ func Do() error {
 			return fmt.Errorf("parsing flags: %s", err)
 		}
 		args = flagSet.Args()
-		if err := cmd.Run(&conf, args); err != nil {
+		if err := cmd.Run(os.Stdout, args, &conf); err != nil {
 			return err
 		}
 		return nil
