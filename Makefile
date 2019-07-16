@@ -21,7 +21,7 @@ lint:
 
 .PHONY: test
 test:
-	go test ./... -v -race
+	go test ./internal/gurnel/... -v -race
 
 .PHONY: clean
 clean:
