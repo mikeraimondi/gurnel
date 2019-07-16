@@ -1,3 +1,6 @@
+.PHONY: check
+check: test lint
+
 .PHONY: build
 build: compile post
 
@@ -28,7 +31,7 @@ clean:
 	rm -rf dist
 
 .PHONY: release
-release: test lint clean
+release: check clean
 	@:$(call check_defined, VERSION, version to release)
 	go mod tidy
 	git tag $(VERSION)
