@@ -49,7 +49,11 @@ func (*startCmd) Run(w io.Writer, args []string, conf *config) error {
 	editCmd := strings.Split(editor, " ")
 	editCmd = append(editCmd, p.Path)
 	startTime := time.Now()
-	if err = exec.Command(editCmd[0], editCmd[1:]...).Run(); err != nil {
+	cmd := exec.Command(editCmd[0], editCmd[1:]...)
+	cmd.Stdin = r
+	cmd.Stdout = w
+	cmd.Stderr = w
+	if err = cmd.Run(); err != nil {
 		return errors.New("opening editor " + err.Error())
 	}
 	elapsed := time.Since(startTime)
