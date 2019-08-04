@@ -1,5 +1,5 @@
 .PHONY: check
-check: test lint
+check: tidy test lint
 
 .PHONY: build
 build: compile post
@@ -30,10 +30,13 @@ test:
 clean:
 	rm -rf dist
 
+.PHONY: tidy
+tidy:
+	go mod tidy
+
 .PHONY: release
 release: check clean
 	@:$(call check_defined, VERSION, version to release)
-	go mod tidy
 	git tag $(VERSION)
 	goreleaser release --config=build/package/.goreleaser.yml
 

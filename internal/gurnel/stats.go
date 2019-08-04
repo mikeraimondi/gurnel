@@ -18,7 +18,6 @@ import (
 	"time"
 
 	"github.com/mikeraimondi/gurnel/internal/bindata"
-	"github.com/mikeraimondi/journalentry/v2"
 )
 
 type statsCmd struct{}
@@ -32,7 +31,7 @@ func (*statsCmd) LongHelp() string {
 		"to a Google Ngram corpus of scanned literature"
 }
 
-func (*statsCmd) Run(w io.Writer, args []string, conf *config) error {
+func (*statsCmd) Run(_ io.Reader, w io.Writer, args []string, conf *config) error {
 	refFreqsCSV, err := bindata.Asset("eng-us-10000-1960.csv")
 	if err != nil {
 		return fmt.Errorf("loading asset: %s", err)
@@ -189,7 +188,7 @@ func walkFiles(
 			if err != nil {
 				return err
 			}
-			if !info.Mode().IsRegular() || visited[info.Name()] || !journalentry.IsEntry(path) {
+			if !info.Mode().IsRegular() || visited[info.Name()] || !IsEntry(path) {
 				return nil
 			}
 			visited[info.Name()] = true
@@ -206,7 +205,7 @@ func walkFiles(
 
 func entryScanner(done <-chan struct{}, paths <-chan string, c chan<- result) {
 	for path := range paths {
-		p := &journalentry.Entry{Path: path}
+		p := &Entry{Path: path}
 		m := make(map[string]uint64)
 		_, err := p.Load()
 		if err == nil {

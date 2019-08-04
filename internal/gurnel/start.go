@@ -12,8 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/mikeraimondi/journalentry/v2"
 )
 
 type startCmd struct{}
@@ -26,7 +24,7 @@ func (*startCmd) LongHelp() string {
 	return "If you don't like the editor this uses, set $EDITOR to something else."
 }
 
-func (*startCmd) Run(w io.Writer, args []string, conf *config) error {
+func (*startCmd) Run(r io.Reader, w io.Writer, args []string, conf *config) error {
 	// Create or open entry at working directory
 	wd, err := os.Getwd()
 	if err != nil {
@@ -36,13 +34,13 @@ func (*startCmd) Run(w io.Writer, args []string, conf *config) error {
 	if err != nil {
 		return errors.New("evaluating symlinks " + err.Error())
 	}
-	p, err := journalentry.New(wd)
+	p, err := NewEntry(wd)
 	if err != nil {
 		return err
 	}
 
 	// Open file for editing
-	editor := os.Getenv("GURNEL_EDITOR")
+	editor := conf.Editor
 	if editor == "" {
 		editor = os.Getenv("EDITOR")
 	}
@@ -69,13 +67,13 @@ func (*startCmd) Run(w io.Writer, args []string, conf *config) error {
 	// Check word count before proceeding to metadata collection
 	wordCount := len(p.Words())
 	fmt.Fprintf(w, "%v words in entry\n", wordCount)
-	if wordCount < minWordCount {
-		fmt.Fprintf(w, "Minimum word count is %v. Insufficient word count to commit\n", minWordCount)
+	if wordCount < conf.MinimumWordCount {
+		fmt.Fprintf(w, "Minimum word count is %v. Insufficient word count to commit\n", conf.MinimumWordCount)
 	} else {
 		fmt.Fprintf(w, "---begin entry preview---\n%v\n--end entry preview---\n", string(p.Body))
 
 		// Collect & set metadata
-		if promptErr := p.PromptForMetadata(os.Stdin, os.Stdout); promptErr != nil {
+		if promptErr := p.PromptForMetadata(r, w); promptErr != nil {
 			return errors.New("collecting metadata " + promptErr.Error())
 		}
 	}
@@ -84,12 +82,12 @@ func (*startCmd) Run(w io.Writer, args []string, conf *config) error {
 		return errors.New("saving file " + saveErr.Error())
 	}
 
-	if wordCount > minWordCount {
+	if wordCount >= conf.MinimumWordCount {
 		// Prompt for commit
-		reader := bufio.NewReader(os.Stdin)
-		for {
-			fmt.Print("Commit? (y/n) ")
-			input, _ := reader.ReadString('\n')
+		fmt.Fprint(w, "Commit? (y/n) ")
+		scanner := bufio.NewScanner(r)
+		for scanner.Scan() {
+			input := scanner.Text()
 			input = strings.TrimSpace(input)
 			switch input {
 			case "y":
@@ -123,9 +121,12 @@ func (*startCmd) Run(w io.Writer, args []string, conf *config) error {
 				return nil
 			default:
 				fmt.Fprintln(w, "Unrecognized input")
+				fmt.Fprint(w, "Commit? (y/n) ")
 			}
 		}
+		if scanner.Err() != nil {
+			return scanner.Err()
+		}
 	}
-
 	return nil
 }

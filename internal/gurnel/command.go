@@ -10,13 +10,8 @@ import (
 	"text/template"
 )
 
-// TODO make configurable
-const (
-	minWordCount = 750
-)
-
 type subcommand interface {
-	Run(io.Writer, []string, *config) error
+	Run(io.Reader, io.Writer, []string, *config) error
 	Name() string
 	ShortHelp() string
 	LongHelp() string
@@ -59,7 +54,7 @@ func Do() error {
 			return fmt.Errorf("parsing flags: %s", err)
 		}
 		args = flagSet.Args()
-		if err := cmd.Run(os.Stdout, args, &conf); err != nil {
+		if err := cmd.Run(os.Stdin, os.Stdout, args, &conf); err != nil {
 			return err
 		}
 		return nil

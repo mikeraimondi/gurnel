@@ -18,6 +18,8 @@ type config struct {
 	BeeminderUser      string
 	BeeminderTokenFile string
 	BeeminderGoal      string
+	MinimumWordCount   int
+	Editor             string
 	dp                 dirProvider
 	subcommands        []subcommand
 }
@@ -34,6 +36,7 @@ func (dp *defaultDirProvider) getHomeDir() (string, error) {
 
 func (c *config) load(path ...string) error {
 	c.setupSubcommands()
+	c.MinimumWordCount = 750
 
 	dir, err := c.getConfigDir()
 	if err != nil {
