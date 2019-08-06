@@ -82,51 +82,50 @@ func (*startCmd) Run(r io.Reader, w io.Writer, args []string, conf *config) erro
 		return errors.New("saving file " + saveErr.Error())
 	}
 
-	if wordCount >= conf.MinimumWordCount {
-		// Prompt for commit
-		fmt.Fprint(w, "Commit? (y/n) ")
-		scanner := bufio.NewScanner(r)
-		for scanner.Scan() {
-			input := scanner.Text()
-			input = strings.TrimSpace(input)
-			switch input {
-			case "y":
-				// Commit the changes
-				err = exec.Command("git", "add", p.Path).Run()
-				if err != nil {
-					return errors.New("adding file to version control " + err.Error())
-				}
-				err = exec.Command("git", "commit", "-m", "Done").Run()
-				if err != nil {
-					return errors.New("committing file " + err.Error())
-				}
-				fmt.Fprintln(w, "Committed")
+	if wordCount < conf.MinimumWordCount {
+		return nil
+	}
 
-				token, err := ioutil.ReadFile(conf.BeeminderTokenFile)
-				if err != nil {
-					return fmt.Errorf("reading token: %s", err)
-				}
-				client, err := newBeeminderClient(conf.BeeminderUser, token)
-				if err != nil {
-					return fmt.Errorf("setting up client: %s", err)
-				}
-				err = client.postDatapoint(conf.BeeminderGoal, wordCount)
-				if err != nil {
-					return fmt.Errorf("posting to Beeminder: %s", err)
-				}
-
-				return nil
-			case "n":
-				fmt.Fprintln(w, "Exiting")
-				return nil
-			default:
-				fmt.Fprintln(w, "Unrecognized input")
-				fmt.Fprint(w, "Commit? (y/n) ")
+	// Prompt for commit
+	fmt.Fprint(w, "Commit? (y/n) ")
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		input := scanner.Text()
+		input = strings.TrimSpace(input)
+		switch input {
+		case "y":
+			// Commit the changes
+			err = exec.Command("git", "add", p.Path).Run()
+			if err != nil {
+				return errors.New("adding file to version control " + err.Error())
 			}
-		}
-		if scanner.Err() != nil {
-			return scanner.Err()
+			err = exec.Command("git", "commit", "-m", "Done").Run()
+			if err != nil {
+				return errors.New("committing file " + err.Error())
+			}
+			fmt.Fprintln(w, "Committed")
+
+			token, err := ioutil.ReadFile(conf.BeeminderTokenFile)
+			if err != nil {
+				return fmt.Errorf("reading token: %s", err)
+			}
+			client, err := newBeeminderClient(conf.BeeminderUser, token)
+			if err != nil {
+				return fmt.Errorf("setting up client: %s", err)
+			}
+			err = client.postDatapoint(conf.BeeminderGoal, wordCount)
+			if err != nil {
+				return fmt.Errorf("posting to Beeminder: %s", err)
+			}
+
+			return nil
+		case "n":
+			fmt.Fprintln(w, "Exiting")
+			return nil
+		default:
+			fmt.Fprintln(w, "Unrecognized input")
+			fmt.Fprint(w, "Commit? (y/n) ")
 		}
 	}
-	return nil
+	return scanner.Err()
 }
