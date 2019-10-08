@@ -1,5 +1,7 @@
 # Gurnel
 
+![Build Status](https://github.com/mikeraimondi/gurnel/workflows/CI/badge.svg)
+
 Daily journaling for hackers
 
 ## Features
