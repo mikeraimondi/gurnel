@@ -1,6 +1,7 @@
 # Gurnel
 
 ![Build Status](https://github.com/mikeraimondi/gurnel/workflows/CI/badge.svg)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mikeraimondi/gurnel)](https://goreportcard.com/report/github.com/mikeraimondi/gurnel)
 
 Daily journaling for hackers
 
