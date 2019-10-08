@@ -1,7 +1,6 @@
 package gurnel
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -9,8 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/mikeraimondi/frontmatter/v2"
@@ -20,7 +17,6 @@ const (
 	entryFormat = "2006-01-02-Journal-Entry-for-Jan-2" + ".md"
 	entryRegex  = `\d{4}-\d{2}-\d{2}-Journal-Entry-for-\D{3}-\d{1,2}` + ".md"
 	wordRegex   = `\S+`
-	ratingRegex = `^[1-5]$`
 )
 
 // Entry represents a single journal entry.
@@ -35,8 +31,8 @@ type Entry struct {
 	ModTime     time.Time `yaml:"-"`
 }
 
-// New reads the directory named by dir and either returns an existing Entry in
-// that directory, or creates a new one if none exist.
+// NewEntry reads the directory named by dir and either returns an existing
+// Entry in that directory, or creates a new one if none exist.
 func NewEntry(dir string) (*Entry, error) {
 	info, err := os.Stat(dir)
 	if err != nil {
@@ -92,6 +88,7 @@ func (p *Entry) Save() (err error) {
 	return err
 }
 
+// Date returns the date of the entry
 func (p *Entry) Date() (time.Time, error) {
 	return time.Parse(entryFormat, filepath.Base(p.Path))
 }
@@ -103,27 +100,15 @@ func (p *Entry) Words() [][]byte {
 
 // PromptForMetadata prints questions to w and sets the values of p based on values read from reader.
 func (p *Entry) PromptForMetadata(reader io.Reader, w io.Writer) error {
-	scanner := bufio.NewScanner(reader)
 	for prompt, setter := range p.prompts() {
-		fmt.Fprint(w, prompt)
-		for scanner.Scan() {
-			input := scanner.Text()
-			input = strings.TrimSpace(input)
-			regex := regexp.MustCompile(ratingRegex)
-			if regex.MatchString(input) {
-				rating, err := strconv.ParseUint(input, 10, 8)
-				if err != nil {
-					return err
-				}
-				setter(uint8(rating))
-				break
-			} else {
+		var input uint8
+		for input == 0 {
+			fmt.Fprint(w, prompt)
+			if _, err := fmt.Fscanf(reader, "%d\n", &input); err != nil {
 				fmt.Fprintln(w, "Unrecognized input")
-				fmt.Fprint(w, prompt)
+				continue
 			}
-		}
-		if err := scanner.Err(); err != nil {
-			return err
+			setter(input)
 		}
 	}
 	return nil

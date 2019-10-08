@@ -18,6 +18,7 @@ type subcommand interface {
 	Flag() flag.FlagSet
 }
 
+// Do executes the program
 func Do() error {
 	var conf config
 	if err := conf.load("gurnel", "gurnel.json"); err != nil {
