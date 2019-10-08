@@ -11,4 +11,6 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: Run a one-line script
-      run: make check build
+      run: |
+        go get -u github.com/go-bindata/go-bindata/...
+        make check build
