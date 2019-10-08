@@ -8,6 +8,7 @@ linters:
   disable:
     - maligned
     - gocyclo
+    - funlen
 
 linters-settings:
   govet:

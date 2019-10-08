@@ -60,7 +60,6 @@ func TestLoadConfig(t *testing.T) {
 				t.Fatalf("creating temp file: %s", err)
 			}
 			defer file.Close()
-			// TODO delete file
 			if err := json.NewEncoder(file).Encode(&tC.postLoadConf); err != nil {
 				t.Fatalf("writing to temp file: %s", err)
 			}

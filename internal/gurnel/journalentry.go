@@ -21,7 +21,6 @@ const (
 
 // Entry represents a single journal entry.
 type Entry struct {
-	// TODO move FM attributes to own struct
 	Seconds     uint16
 	LowMood     uint8
 	HighMood    uint8
