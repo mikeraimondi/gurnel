@@ -4,13 +4,20 @@ on: [push]
 
 jobs:
   build:
-
     runs-on: ubuntu-18.04
-    container : golangci/golangci-lint:v1.19
-
+    container: golang:1.13.1
+    steps:
+    - name: Install Dependencies
+      run: go get -u github.com/go-bindata/go-bindata/...
+    - uses: actions/checkout@v1
+    - name: Run Tests
+      run: make test
+    - name: Build
+      run: make build
+  lint:
+    runs-on: ubuntu-18.04
+    container: golangci/golangci-lint:v1.19
     steps:
     - uses: actions/checkout@v1
-    - name: Run a one-line script
-      run: |
-        go get -u github.com/go-bindata/go-bindata/...
-        make check build
+    - name: Run Linters
+      run: make lint
