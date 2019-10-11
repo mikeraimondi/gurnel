@@ -6,8 +6,14 @@ jobs:
   test:
     runs-on: ubuntu-18.04
     container: golang:1.13.1
-
     steps:
     - uses: actions/checkout@v1
     - name: Run Tests
       run: make test
+  lint:
+    runs-on: ubuntu-18.04
+    container: golangci/golangci-lint:v1.19
+    steps:
+    - uses: actions/checkout@v1
+    - name: Run Linters
+      run: make lint
