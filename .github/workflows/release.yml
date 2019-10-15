@@ -16,7 +16,7 @@ jobs:
     - name: Run Tests
       run: make test
     - name: Prepare Build
-      run: make pre
+      run: make tidy pre
     - name: Run GoReleaser
       uses: goreleaser/goreleaser-action@v1
       with:
