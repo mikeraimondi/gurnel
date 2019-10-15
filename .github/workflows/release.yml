@@ -1,0 +1,26 @@
+name: release
+
+on:
+  push:
+    tags:
+      - v*
+
+jobs:
+  goreleaser:
+    runs-on: ubuntu-18.04
+    container: golang:1.13.1
+    steps:
+    - name: Install Dependencies
+      run: go get -u github.com/go-bindata/go-bindata/...
+    - uses: actions/checkout@v1
+    - name: Run Tests
+      run: make test
+    - name: Prepare Build
+      run: make pre
+    - name: Run GoReleaser
+      uses: goreleaser/goreleaser-action@v1
+      with:
+        version: v0.119.0
+        args: release --config=build/package/.goreleaser.yml
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
