@@ -17,7 +17,7 @@ compile:
 	go build -o dist/gurnel cmd/gurnel/main.go
 
 .PHONY: lint
-lint:
+lint: pre
 	golangci-lint run -c build/.golangci.yml
 
 .PHONY: test

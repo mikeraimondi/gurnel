@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-18.04
     container: golangci/golangci-lint:v1.19
     steps:
+    - name: Install Dependencies
+      run: go get -u github.com/go-bindata/go-bindata/...
     - uses: actions/checkout@v1
     - name: Run Linters
       run: make lint
