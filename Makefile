@@ -9,7 +9,6 @@ build: pre
 .PHONY: pre
 pre:
 	go mod download
-	./scripts/bindata.sh
 
 .PHONY: lint
 lint:

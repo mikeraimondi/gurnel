@@ -7,8 +7,6 @@ jobs:
     runs-on: ubuntu-18.04
     container: golang:1.13.1
     steps:
-    - name: Install Dependencies
-      run: go get -u github.com/go-bindata/go-bindata/...
     - uses: actions/checkout@v1
     - name: Run Tests
       run: make test
