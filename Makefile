@@ -2,21 +2,14 @@
 check: tidy test lint
 
 .PHONY: build
-build: compile post
+build: pre
+	mkdir -p dist
+	go build -o dist/gurnel cmd/gurnel/main.go
 
 .PHONY: pre
 pre:
 	go mod download
 	./scripts/bindata.sh
-
-.PHONY: compile
-compile: pre
-	mkdir -p dist
-	go build -o dist/gurnel cmd/gurnel/main.go
-
-.PHONY: post
-post:
-	./scripts/bindata_debug.sh
 
 .PHONY: lint
 lint:
@@ -41,7 +34,7 @@ release: check clean
 	goreleaser release --config=build/package/.goreleaser.yml
 
 .PHONY: publish
-publish: pre release post clean
+publish: pre release clean
 
 check_defined = \
     $(strip $(foreach 1,$1, \
