@@ -19,4 +19,4 @@ jobs:
         version: v0.119.0
         args: release --config=build/package/.goreleaser.yml
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_PERSONAL_ACCESS_TOKEN }}
