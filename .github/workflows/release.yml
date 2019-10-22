@@ -13,6 +13,8 @@ jobs:
     - uses: actions/checkout@v1
     - name: Run Tests
       run: make test
+    - name: Go Tidy
+      run: make tidy
     - name: Run GoReleaser
       uses: goreleaser/goreleaser-action@v1
       with:
