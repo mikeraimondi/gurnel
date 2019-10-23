@@ -35,7 +35,7 @@ func (c *config) load(path ...string) error {
 
 	dir, err := c.getConfigDir()
 	if err != nil {
-		return fmt.Errorf("getting config directory: %s", err)
+		return fmt.Errorf("getting config directory: %w", err)
 	}
 
 	path = append([]string{dir}, path...)
@@ -44,7 +44,7 @@ func (c *config) load(path ...string) error {
 		if os.IsNotExist(err) {
 			return nil
 		}
-		return fmt.Errorf("opening file: %s", err)
+		return fmt.Errorf("opening file: %w", err)
 	}
 	return json.Unmarshal(configData, c)
 }

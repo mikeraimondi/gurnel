@@ -22,7 +22,7 @@ type subcommand interface {
 func Do() error {
 	var conf config
 	if err := conf.load("gurnel", "gurnel.json"); err != nil {
-		return fmt.Errorf("loading config: %s", err)
+		return fmt.Errorf("loading config: %w", err)
 	}
 
 	flag.Usage = func() {
@@ -52,7 +52,7 @@ func Do() error {
 			fmt.Fprintf(os.Stderr, "usage: %s\n\n", name)
 		}
 		if err := flagSet.Parse(args[1:]); err != nil {
-			return fmt.Errorf("parsing flags: %s", err)
+			return fmt.Errorf("parsing flags: %w", err)
 		}
 		args = flagSet.Args()
 		if err := cmd.Run(os.Stdin, os.Stdout, args, &conf); err != nil {
