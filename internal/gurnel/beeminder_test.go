@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"log"
 )
 
 func TestBeeminderPostServerErrors(t *testing.T) {

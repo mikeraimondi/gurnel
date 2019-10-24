@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"time"
+	"log"
 
 	"github.com/mikeraimondi/frontmatter/v2"
 )

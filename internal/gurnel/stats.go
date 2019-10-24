@@ -16,6 +16,7 @@ import (
 	"sync"
 	"text/tabwriter"
 	"time"
+	"log"
 
 	"github.com/mikeraimondi/gurnel/internal/bindata"
 )

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"log"
 
 	"github.com/mikeraimondi/gurnel/internal/gurnel"
 )
