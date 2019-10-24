@@ -32,7 +32,7 @@ type Entry struct {
 
 // NewEntry reads the directory named by dir and either returns an existing
 // Entry in that directory, or creates a new one if none exist.
-func NewEntry(dir string) (*Entry, error) {
+func NewEntry(dir string, t time.Time) (*Entry, error) {
 	info, err := os.Stat(dir)
 	if err != nil {
 		return nil, err
@@ -40,10 +40,10 @@ func NewEntry(dir string) (*Entry, error) {
 	if !info.IsDir() {
 		return nil, errors.New("must be a directory")
 	}
-	p := &Entry{Path: dir + string(filepath.Separator) + time.Now().Format(entryFormat)}
+	p := &Entry{Path: dir + string(filepath.Separator) + t.Format(entryFormat)}
 	_, err = os.Stat(p.Path)
 	if os.IsNotExist(err) {
-		p.ModTime = time.Now()
+		p.ModTime = t
 		err = p.Save()
 	} else if err == nil {
 		_, err = p.Load()

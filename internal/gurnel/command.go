@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"text/template"
+	"time"
 )
 
 type subcommand interface {
@@ -18,12 +19,17 @@ type subcommand interface {
 	Flag() flag.FlagSet
 }
 
+type defaultClock struct{}
+
+func (c *defaultClock) Now() time.Time { return time.Now() }
+
 // Do executes the program
 func Do() error {
 	var conf config
 	if err := conf.load("gurnel", "gurnel.json"); err != nil {
 		return fmt.Errorf("loading config: %w", err)
 	}
+	conf.clock = &defaultClock{}
 
 	flag.Usage = func() {
 		printUsage(conf.subcommands, os.Stderr)

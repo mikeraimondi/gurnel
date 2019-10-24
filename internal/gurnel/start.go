@@ -34,7 +34,7 @@ func (*startCmd) Run(r io.Reader, w io.Writer, args []string, conf *config) erro
 	if err != nil {
 		return errors.New("evaluating symlinks " + err.Error())
 	}
-	p, err := NewEntry(wd)
+	p, err := NewEntry(wd, conf.clock.Now())
 	if err != nil {
 		return err
 	}
@@ -46,7 +46,7 @@ func (*startCmd) Run(r io.Reader, w io.Writer, args []string, conf *config) erro
 	}
 	editCmd := strings.Split(editor, " ")
 	editCmd = append(editCmd, p.Path)
-	startTime := time.Now()
+	startTime := conf.clock.Now()
 	cmd := exec.Command(editCmd[0], editCmd[1:]...)
 	cmd.Stdin = r
 	cmd.Stdout = w
@@ -113,7 +113,7 @@ func (*startCmd) Run(r io.Reader, w io.Writer, args []string, conf *config) erro
 			if err != nil {
 				return fmt.Errorf("setting up client: %w", err)
 			}
-			err = client.postDatapoint(conf.BeeminderGoal, wordCount)
+			err = client.postDatapoint(conf.BeeminderGoal, wordCount, conf.clock.Now())
 			if err != nil {
 				return fmt.Errorf("posting to Beeminder: %w", err)
 			}
