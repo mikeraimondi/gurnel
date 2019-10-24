@@ -105,59 +105,64 @@ func (*statsCmd) Run(_ io.Reader, w io.Writer, args []string, conf *config) erro
 	if err := <-errc; err != nil {
 		return err
 	}
-	if entryCount > 0 {
-		percent := entryCount / math.Floor(t.Sub(minDate).Hours()/24)
-		const outFormat = "Jan 2 2006"
-		fmt.Fprintf(w, "%.2f%% of days journaled since %v\n", percent*100, minDate.Format(outFormat))
-		var wordCount uint64
-		for _, count := range wordMap {
-			wordCount += count
-		}
-		fmt.Fprintf(w, "Total word count: %v\n", wordCount)
-		avgCount := float64(wordCount) / entryCount
-		fmt.Fprintf(w, "Average word count: %.1f\n", avgCount)
-		fmt.Fprint(w, "\n")
 
-		if len(refFreqs) == 0 {
-			return nil // no code generation. exit early
-		}
-
-		wordStats := make([]*wordStat, len(wordMap))
-		i := 0
-		for word, count := range wordMap {
-			frequency := float64(count) / float64(wordCount)
-			var relFrequency float64
-			refFrequency := refFreqs[word]
-			if frequency > refFrequency {
-				if refFrequency > 0 {
-					relFrequency = frequency / refFrequency
-				}
-			} else {
-				relFrequency = (refFrequency / frequency) * -1
-			}
-			wordStats[i] = &wordStat{word: word, occurrences: count, frequency: relFrequency}
-			i++
-		}
-
-		sort.Slice(wordStats, func(i, j int) bool {
-			return wordStats[i].frequency > wordStats[j].frequency
-		})
-
-		topUnusualWordCount := 100
-		w := tabwriter.NewWriter(os.Stdout, 0, 0, 1, ' ', 0)
-		fmt.Fprintf(w, "Top %v unusually frequent words:\n", topUnusualWordCount)
-		for _, ws := range wordStats[:topUnusualWordCount] {
-			fmt.Fprintf(w, "%v\t%.1fX\n", ws.word, ws.frequency)
-		}
-		w.Flush()
-		fmt.Fprint(w, "\n")
-		fmt.Fprintf(w, "Top %v unusually infrequent words:\n", topUnusualWordCount)
-		for i := 1; i <= topUnusualWordCount; i++ {
-			ws := wordStats[len(wordStats)-i]
-			fmt.Fprintf(w, "%v\t%.1fX\n", ws.word, ws.frequency)
-		}
-		w.Flush()
+	if entryCount == 0 {
+		fmt.Fprint(w, "no entries found! why not try writing one with 'gurnel start'?")
+		return nil
 	}
+
+	percent := entryCount / math.Floor(t.Sub(minDate).Hours()/24)
+	const outFormat = "Jan 2 2006"
+	fmt.Fprintf(w, "%.2f%% of days journaled since %v\n", percent*100, minDate.Format(outFormat))
+	var wordCount uint64
+	for _, count := range wordMap {
+		wordCount += count
+	}
+	fmt.Fprintf(w, "Total word count: %v\n", wordCount)
+	avgCount := float64(wordCount) / entryCount
+	fmt.Fprintf(w, "Average word count: %.1f\n", avgCount)
+	fmt.Fprint(w, "\n")
+
+	wordStats := make([]*wordStat, len(wordMap))
+	i := 0
+	for word, count := range wordMap {
+		frequency := float64(count) / float64(wordCount)
+		var relFrequency float64
+		refFrequency := refFreqs[word]
+		if frequency > refFrequency {
+			if refFrequency > 0 {
+				relFrequency = frequency / refFrequency
+			}
+		} else {
+			relFrequency = (refFrequency / frequency) * -1
+		}
+		wordStats[i] = &wordStat{word: word, occurrences: count, frequency: relFrequency}
+		i++
+	}
+
+	sort.Slice(wordStats, func(i, j int) bool {
+		return wordStats[i].frequency > wordStats[j].frequency
+	})
+
+	var topUnusualWordCount uint64
+	topUnusualWordCount = 100
+	if topUnusualWordCount > wordCount {
+		topUnusualWordCount = wordCount
+	}
+	out := tabwriter.NewWriter(w, 0, 0, 1, ' ', 0)
+	fmt.Fprintf(out, "Top %v unusually frequent words:\n", topUnusualWordCount)
+	for _, ws := range wordStats[:topUnusualWordCount] {
+		fmt.Fprintf(out, "%v\t%.1fX\n", ws.word, ws.frequency)
+	}
+	out.Flush()
+	fmt.Fprint(out, "\n")
+	fmt.Fprintf(out, "Top %v unusually infrequent words:\n", topUnusualWordCount)
+	for i := 1; i <= int(topUnusualWordCount); i++ {
+		ws := wordStats[len(wordStats)-i]
+		fmt.Fprintf(out, "%v\t%.1fX\n", ws.word, ws.frequency)
+	}
+	out.Flush()
+
 	return nil
 }
 

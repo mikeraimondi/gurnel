@@ -9,6 +9,8 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/mikeraimondi/gurnel/internal/test"
 )
 
 type testReader struct {
@@ -61,13 +63,10 @@ func TestStart(t *testing.T) {
 			_, filename, _, _ := runtime.Caller(0)
 			dir := filepath.Dir(filepath.Dir(filepath.Dir(filename)))
 			tC.conf.Editor = filepath.Join(dir, "test", "no_op_editor.sh")
-			dir, err := ioutil.TempDir("", "gurnel_test")
-			if err != nil {
-				t.Fatal(err)
-			}
-			if err = os.Chdir(dir); err != nil {
-				t.Fatal(err)
-			}
+
+			dir, cleanup := test.SetupTestDir(t)
+			defer cleanup()
+
 			cmd := startCmd{}
 			inReader := testReader{
 				t:     t,
@@ -91,17 +90,10 @@ func TestStart(t *testing.T) {
 				}
 				files, _ = ioutil.ReadDir(dir)
 			}
-			f, err := os.OpenFile(filepath.Join(dir, file.Name()), os.O_RDWR|os.O_APPEND|os.O_SYNC, 0600)
-			if err != nil {
-				t.Fatalf("error opening file: %s", err)
-			}
-			defer f.Close()
 
-			if _, err = f.WriteString(tC.input); err != nil {
-				t.Fatalf("error writing file: %s", err)
-			}
+			defer test.WriteFile(t, filepath.Join(dir, file.Name()), tC.input)()
 
-			err = <-errC
+			err := <-errC
 			if tC.err == "" {
 				if err != nil {
 					t.Fatalf("expected no error. got %s", err)
@@ -114,7 +106,7 @@ func TestStart(t *testing.T) {
 
 			for _, expectedOut := range tC.out {
 				if !strings.Contains(strings.ToLower(out.String()), strings.ToLower(expectedOut)) {
-					t.Fatalf("expected output containing %s. got %q", tC.out, out.String())
+					t.Fatalf("expected output containing %s. got %q", expectedOut, out.String())
 				}
 			}
 		})
