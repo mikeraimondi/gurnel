@@ -8,7 +8,6 @@ import (
 	"net/url"
 	"strconv"
 	"time"
-	"log"
 )
 
 type beeminderClient struct {

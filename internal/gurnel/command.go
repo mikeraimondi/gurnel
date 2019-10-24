@@ -8,7 +8,6 @@ import (
 	"os"
 	"strings"
 	"text/template"
-	"log"
 )
 
 type subcommand interface {
