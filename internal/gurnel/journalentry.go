@@ -21,7 +21,7 @@ const (
 
 // Entry represents a single journal entry.
 type Entry struct {
-	Seconds     uint16
+	Seconds     int
 	LowMood     uint8
 	HighMood    uint8
 	AverageMood uint8
