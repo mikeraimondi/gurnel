@@ -9,8 +9,7 @@ import (
 )
 
 type dirProvider interface {
-	getConfigDir() (string, bool)
-	getHomeDir() (string, error)
+	getConfigDir() (string, error)
 }
 
 type config struct {
@@ -26,12 +25,8 @@ type config struct {
 
 type defaultDirProvider struct{}
 
-func (dp *defaultDirProvider) getConfigDir() (string, bool) {
-	return os.LookupEnv("XDG_CONFIG_HOME")
-}
-
-func (dp *defaultDirProvider) getHomeDir() (string, error) {
-	return os.UserHomeDir()
+func (dp *defaultDirProvider) getConfigDir() (string, error) {
+	return os.UserConfigDir()
 }
 
 func (c *config) load(path ...string) error {
@@ -59,16 +54,11 @@ func (c *config) getConfigDir() (string, error) {
 		c.dp = &defaultDirProvider{}
 	}
 
-	dir, ok := c.dp.getConfigDir()
-	if ok {
-		return dir, nil
-	}
-
-	homeDir, err := c.dp.getHomeDir()
+	dir, err := c.dp.getConfigDir()
 	if err != nil {
-		return "", fmt.Errorf("getting home directory: %s", err)
+		return "", err
 	}
-	return filepath.Join(homeDir, ".config"), nil
+	return dir, nil
 }
 
 func (c *config) setupSubcommands() {

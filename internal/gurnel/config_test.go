@@ -12,12 +12,8 @@ type testDirProvider struct {
 	configDir string
 }
 
-func (tdp *testDirProvider) getConfigDir() (string, bool) {
-	return tdp.configDir, true
-}
-
-func (tdp *testDirProvider) getHomeDir() (string, error) {
-	return "", nil
+func (tdp *testDirProvider) getConfigDir() (string, error) {
+	return tdp.configDir, nil
 }
 
 func TestLoadConfig(t *testing.T) {
