@@ -7,19 +7,33 @@ on:
     types: [assigned, opened, synchronize, reopened]
 
 jobs:
-  build:
+  build_linux:
     runs-on: ubuntu-18.04
     container: golang:1.13.1
     steps:
-    - uses: actions/checkout@v1
-    - name: Run Tests
-      run: make test
-    - name: Build
-      run: make build
+      - uses: actions/checkout@v1
+      - name: Run Tests
+        run: make test
+      - name: Build
+        run: make build
+  build_mac:
+    needs: build_linux
+    runs-on: macos-latest
+    container: golang:1.13.1
+    steps:
+      - uses: actions/checkout@v1
+      - name: Download dependencies
+        run: go mod download
+      - name: Run Tests
+        run: go test ./internal/gurnel/... -v -race
+      - name: Build
+        run: |
+          mkdir -p dist
+          go build -o dist/gurnel cmd/gurnel/main.go
   lint:
     runs-on: ubuntu-18.04
     container: golangci/golangci-lint:v1.21
     steps:
-    - uses: actions/checkout@v1
-    - name: Run Linters
-      run: make lint
+      - uses: actions/checkout@v1
+      - name: Run Linters
+        run: make lint
