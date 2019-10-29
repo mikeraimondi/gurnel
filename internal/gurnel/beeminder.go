@@ -42,7 +42,7 @@ func (client *beeminderClient) postDatapoint(goal string, count int) error {
 
 	postURL, err := url.Parse(client.serverURL)
 	if err != nil {
-		return fmt.Errorf("internal URL error: %s", err)
+		return fmt.Errorf("internal URL error: %w", err)
 	}
 	postURL.Path = fmt.Sprintf("api/v1/users/%s/goals/%s/datapoints.json",
 		client.User, goal)
@@ -54,7 +54,7 @@ func (client *beeminderClient) postDatapoint(goal string, count int) error {
 
 	resp, err := client.c.PostForm(postURL.String(), v)
 	if err != nil {
-		return fmt.Errorf("making request: %s", err)
+		return fmt.Errorf("making request: %w", err)
 	}
 	defer resp.Body.Close()
 

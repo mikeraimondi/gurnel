@@ -34,7 +34,7 @@ func (*statsCmd) LongHelp() string {
 func (*statsCmd) Run(_ io.Reader, w io.Writer, args []string, conf *config) error {
 	refFreqsCSV, err := bindata.Asset("eng-us-10000-1960.csv")
 	if err != nil {
-		return fmt.Errorf("loading asset: %s", err)
+		return fmt.Errorf("loading asset: %w", err)
 	}
 	csvReader := csv.NewReader(bytes.NewReader(refFreqsCSV))
 	csvReader.FieldsPerRecord = 2
@@ -54,7 +54,7 @@ func (*statsCmd) Run(_ io.Reader, w io.Writer, args []string, conf *config) erro
 		}
 		freq, csvErr := strconv.ParseFloat(record[1], 64)
 		if csvErr != nil {
-			return fmt.Errorf("invalid frequency: %s", csvErr)
+			return fmt.Errorf("invalid frequency: %w", csvErr)
 		}
 		refFreqs[strings.ReplaceAll(record[0], `"`, `\"`)] = freq
 	}

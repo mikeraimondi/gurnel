@@ -107,15 +107,15 @@ func (*startCmd) Run(r io.Reader, w io.Writer, args []string, conf *config) erro
 
 			token, err := ioutil.ReadFile(conf.BeeminderTokenFile)
 			if err != nil {
-				return fmt.Errorf("reading token: %s", err)
+				return fmt.Errorf("reading token: %w", err)
 			}
 			client, err := newBeeminderClient(conf.BeeminderUser, token)
 			if err != nil {
-				return fmt.Errorf("setting up client: %s", err)
+				return fmt.Errorf("setting up client: %w", err)
 			}
 			err = client.postDatapoint(conf.BeeminderGoal, wordCount)
 			if err != nil {
-				return fmt.Errorf("posting to Beeminder: %s", err)
+				return fmt.Errorf("posting to Beeminder: %w", err)
 			}
 
 			return nil
