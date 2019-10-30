@@ -86,7 +86,7 @@ func (*statsCmd) Run(_ io.Reader, w io.Writer, args []string, conf *config) erro
 		close(c)
 	}()
 	var entryCount float64
-	wordMap := make(map[string]uint64)
+	wordMap := make(map[string]int)
 	t := time.Now()
 	minDate := t
 	for r := range c {
@@ -109,7 +109,7 @@ func (*statsCmd) Run(_ io.Reader, w io.Writer, args []string, conf *config) erro
 		percent := entryCount / math.Floor(t.Sub(minDate).Hours()/24)
 		const outFormat = "Jan 2 2006"
 		fmt.Fprintf(w, "%.2f%% of days journaled since %v\n", percent*100, minDate.Format(outFormat))
-		var wordCount uint64
+		var wordCount int
 		for _, count := range wordMap {
 			wordCount += count
 		}
@@ -162,14 +162,14 @@ func (*statsCmd) Run(_ io.Reader, w io.Writer, args []string, conf *config) erro
 }
 
 type result struct {
-	wordMap map[string]uint64
+	wordMap map[string]int
 	date    time.Time
 	err     error
 }
 
 type wordStat struct {
 	word        string
-	occurrences uint64
+	occurrences int
 	frequency   float64
 }
 
@@ -206,7 +206,7 @@ func walkFiles(
 func entryScanner(done <-chan struct{}, paths <-chan string, c chan<- result) {
 	for path := range paths {
 		p := &Entry{Path: path}
-		m := make(map[string]uint64)
+		m := make(map[string]int)
 		_, err := p.Load()
 		if err == nil {
 			for _, word := range p.Words() {
