@@ -4,7 +4,7 @@ check: tidy test lint
 .PHONY: build
 build: pre
 	mkdir -p dist
-	go build -o dist/gurnel cmd/gurnel/main.go
+	 go build -ldflags "-X github.com/mikeraimondi/gurnel/internal/gurnel.version=$(git describe --tags $(git rev-list --tags --max-count=1))" -o dist/gurnel cmd/gurnel/main.go
 
 .PHONY: pre
 pre:

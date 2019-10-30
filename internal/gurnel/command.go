@@ -19,6 +19,8 @@ type subcommand interface {
 	Flag() flag.FlagSet
 }
 
+var version string
+
 type defaultClock struct{}
 
 func (c *defaultClock) Now() time.Time { return time.Now() }
@@ -34,9 +36,15 @@ func Do() error {
 	flag.Usage = func() {
 		printUsage(conf.subcommands, os.Stderr)
 	}
+
+	versionPtr := flag.Bool("version", false, "version flag")
 	flag.Parse()
 
 	args := flag.Args()
+	if *versionPtr {
+		fmt.Println(version)
+		return nil
+	}
 	if len(args) < 1 {
 		printUsage(conf.subcommands, os.Stderr)
 		return fmt.Errorf("no subcommand supplied. Did you mean 'gurnel start'?")
