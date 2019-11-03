@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	"github.com/mikeraimondi/gurnel/internal/test"
 )
 
 func TestBeeminderPostServerErrors(t *testing.T) {
@@ -51,9 +53,10 @@ func TestBeeminderPostServerErrors(t *testing.T) {
 				serverURL: server.URL,
 			}
 
+			now := (&test.FixedClock{}).Now()
 			result := make(chan error)
 			go func() {
-				result <- client.postDatapoint("foo", 1)
+				result <- client.postDatapoint("foo", 1, now)
 			}()
 			err := <-result
 
@@ -139,9 +142,10 @@ func TestBeeminderPostParameters(t *testing.T) {
 				serverURL: server.URL,
 			}
 
+			now := (&test.FixedClock{}).Now()
 			result := make(chan error)
 			go func() {
-				result <- client.postDatapoint(tt.goal, tt.count)
+				result <- client.postDatapoint(tt.goal, tt.count, now)
 			}()
 			err := <-result
 			if !tt.valid {
@@ -246,7 +250,8 @@ func TestBeeminderClient(t *testing.T) {
 				c:         http.Client{Transport: tt.transport},
 			}
 
-			err := client.postDatapoint("test", 10)
+			now := (&test.FixedClock{}).Now()
+			err := client.postDatapoint("test", 10, now)
 			if tt.expectedErr == "" {
 				if err != nil {
 					t.Fatalf("expected no error. got %q", err)

@@ -32,7 +32,11 @@ func newBeeminderClient(user string, token []byte) (*beeminderClient, error) {
 	}, nil
 }
 
-func (client *beeminderClient) postDatapoint(goal string, count int) error {
+func (client *beeminderClient) postDatapoint(
+	goal string,
+	count int,
+	t time.Time,
+) error {
 	if goal == "" {
 		return fmt.Errorf("goal must not be blank")
 	}
@@ -50,7 +54,7 @@ func (client *beeminderClient) postDatapoint(goal string, count int) error {
 	v := url.Values{}
 	v.Set("auth_token", string(client.Token))
 	v.Set("value", strconv.Itoa(count))
-	v.Set("comment", "via Gurnel at "+time.Now().Format("15:04:05 MST"))
+	v.Set("comment", "via Gurnel at "+t.Format("15:04:05 MST"))
 
 	resp, err := client.c.PostForm(postURL.String(), v)
 	if err != nil {

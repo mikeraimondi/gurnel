@@ -6,10 +6,15 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type dirProvider interface {
 	getConfigDir() (string, error)
+}
+
+type clock interface {
+	Now() time.Time
 }
 
 type config struct {
@@ -21,6 +26,7 @@ type config struct {
 	Editor             string
 	dp                 dirProvider
 	subcommands        []subcommand
+	clock              clock
 }
 
 type defaultDirProvider struct{}
