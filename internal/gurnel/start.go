@@ -47,6 +47,7 @@ func (*startCmd) Run(r io.Reader, w io.Writer, args []string, conf *config) erro
 	editCmd := strings.Split(editor, " ")
 	editCmd = append(editCmd, p.Path)
 	startTime := conf.clock.Now()
+	// #nosec
 	cmd := exec.Command(editCmd[0], editCmd[1:]...)
 	cmd.Stdin = r
 	cmd.Stdout = w
@@ -95,6 +96,7 @@ func (*startCmd) Run(r io.Reader, w io.Writer, args []string, conf *config) erro
 		switch input {
 		case "y":
 			// Commit the changes
+			// #nosec
 			err = exec.Command("git", "add", p.Path).Run()
 			if err != nil {
 				return errors.New("adding file to version control " + err.Error())
