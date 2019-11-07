@@ -1,14 +1,16 @@
 # golangci.com configuration
 # https://github.com/golangci/golangci/wiki/Configuration
 service:
-  golangci-lint-version: 1.17.x
+  golangci-lint-version: 1.21.x
 
 linters:
   enable-all: true
   disable:
-    - maligned
-    - gocyclo
     - funlen
+    - gocognit
+    - gocyclo
+    - maligned
+    - wsl
 
 linters-settings:
   govet:
