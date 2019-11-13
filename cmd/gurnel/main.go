@@ -8,7 +8,13 @@ import (
 )
 
 func main() {
-	if err := gurnel.Do(); err != nil {
+	var conf gurnel.Config
+	if err := conf.Load("gurnel", "gurnel.json"); err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading config: %s\n", err)
+		os.Exit(2)
+	}
+
+	if err := gurnel.Do(os.Stdin, os.Stdout, &conf); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
 		os.Exit(2)
 	}

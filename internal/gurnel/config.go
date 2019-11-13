@@ -17,7 +17,7 @@ type clock interface {
 	Now() time.Time
 }
 
-type config struct {
+type Config struct {
 	BeeminderEnabled   bool
 	BeeminderUser      string
 	BeeminderTokenFile string
@@ -35,9 +35,17 @@ func (dp *defaultDirProvider) getConfigDir() (string, error) {
 	return os.UserConfigDir()
 }
 
-func (c *config) load(path ...string) error {
+type defaultClock struct{}
+
+func (c *defaultClock) Now() time.Time { return time.Now() }
+
+func (c *Config) Load(path ...string) error {
 	c.setupSubcommands()
 	c.MinimumWordCount = 750
+
+	if c.clock == nil {
+		c.clock = &defaultClock{}
+	}
 
 	dir, err := c.getConfigDir()
 	if err != nil {
@@ -55,7 +63,7 @@ func (c *config) load(path ...string) error {
 	return json.Unmarshal(configData, c)
 }
 
-func (c *config) getConfigDir() (string, error) {
+func (c *Config) getConfigDir() (string, error) {
 	if c.dp == nil {
 		c.dp = &defaultDirProvider{}
 	}
@@ -67,7 +75,7 @@ func (c *config) getConfigDir() (string, error) {
 	return dir, nil
 }
 
-func (c *config) setupSubcommands() {
+func (c *Config) setupSubcommands() {
 	if len(c.subcommands) == 0 {
 		c.subcommands = []subcommand{
 			&startCmd{},

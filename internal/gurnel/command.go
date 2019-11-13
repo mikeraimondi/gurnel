@@ -2,49 +2,40 @@ package gurnel
 
 import (
 	"bufio"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
-	"os"
 	"strings"
 	"text/template"
-	"time"
 )
 
 type subcommand interface {
-	Run(io.Reader, io.Writer, []string, *config) error
+	Run(io.Reader, io.Writer, []string, *Config) error
 	Name() string
 	ShortHelp() string
 	LongHelp() string
 	Flag() flag.FlagSet
 }
 
-type defaultClock struct{}
-
-func (c *defaultClock) Now() time.Time { return time.Now() }
-
-// Do executes the program
-func Do() error {
-	var conf config
-	if err := conf.load("gurnel", "gurnel.json"); err != nil {
-		return fmt.Errorf("loading config: %w", err)
-	}
-	conf.clock = &defaultClock{}
-
+func Do(r io.Reader, w io.Writer, conf *Config) error {
 	flag.Usage = func() {
-		printUsage(conf.subcommands, os.Stderr)
+		printUsage(w, conf.subcommands)
 	}
 	flag.Parse()
 
 	args := flag.Args()
+	return run(r, w, args, conf)
+}
+
+func run(r io.Reader, w io.Writer, args []string, conf *Config) error {
 	if len(args) < 1 {
-		printUsage(conf.subcommands, os.Stderr)
+		printUsage(w, conf.subcommands)
 		return fmt.Errorf("no subcommand supplied. Did you mean 'gurnel start'?")
 	}
 
 	if args[0] == "help" {
-		help(conf.subcommands, args[1:])
-		return nil
+		return help(w, conf.subcommands, args[1:])
 	}
 
 	for _, cmd := range conf.subcommands {
@@ -55,13 +46,13 @@ func Do() error {
 		flagSet := cmd.Flag()
 		name := cmd.Name()
 		flagSet.Usage = func() {
-			fmt.Fprintf(os.Stderr, "usage: %s\n\n", name)
+			fmt.Fprintf(w, "usage: %s\n\n", name)
 		}
 		if err := flagSet.Parse(args[1:]); err != nil {
 			return fmt.Errorf("parsing flags: %w", err)
 		}
 		args = flagSet.Args()
-		if err := cmd.Run(os.Stdin, os.Stdout, args, &conf); err != nil {
+		if err := cmd.Run(r, w, args, conf); err != nil {
 			return err
 		}
 		return nil
@@ -73,7 +64,7 @@ func Do() error {
 	)
 }
 
-func printUsage(commands []subcommand, w io.Writer) {
+func printUsage(w io.Writer, commands []subcommand) {
 	bw := bufio.NewWriter(w)
 	usageTemplate := `Gurnel is a simple journal manager.
 
@@ -90,14 +81,13 @@ Use "gurnel help [command]" for more information about a command.
 	bw.Flush()
 }
 
-func help(commands []subcommand, args []string) {
+func help(w io.Writer, commands []subcommand, args []string) error {
 	if len(args) == 0 {
-		printUsage(commands, os.Stdout)
-		return
+		printUsage(w, commands)
+		return nil
 	}
 	if len(args) != 1 {
-		fmt.Fprintf(os.Stderr, "usage: gurnel help command\n\nToo many arguments given.\n")
-		os.Exit(2)
+		return errors.New("too many arguments given")
 	}
 
 	arg := args[0]
@@ -105,13 +95,12 @@ func help(commands []subcommand, args []string) {
 	helpTemplate := "usage: gurnel {{.Name}}\n{{.LongHelp | trim}}"
 	for _, cmd := range commands {
 		if cmd.Name() == arg {
-			tmpl(os.Stdout, helpTemplate, cmd)
-			return
+			tmpl(w, helpTemplate, cmd)
+			return nil
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "Unknown help topic %#q.  Run 'gurnel help'.\n", arg)
-	os.Exit(2)
+	return errors.New("unknown help topic %#q.  Run 'gurnel help'")
 }
 
 func tmpl(w io.Writer, text string, data interface{}) {

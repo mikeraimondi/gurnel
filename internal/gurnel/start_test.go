@@ -36,14 +36,14 @@ func TestStart(t *testing.T) {
 	testCases := []struct {
 		desc  string
 		input string
-		conf  config
+		conf  Config
 		err   string
 		out   []string
 	}{
 		{
 			desc:  "with input exceeding the minimum length",
 			input: "foo bar baz",
-			conf: config{
+			conf: Config{
 				MinimumWordCount: 3,
 			},
 			out: []string{"begin entry preview", "foo bar baz", "exiting"},
@@ -51,7 +51,7 @@ func TestStart(t *testing.T) {
 		{
 			desc:  "with input less than the minimum length",
 			input: "foo bar",
-			conf: config{
+			conf: Config{
 				MinimumWordCount: 3,
 			},
 			out: []string{"2 words", "Insufficient word count"},
@@ -95,21 +95,9 @@ func TestStart(t *testing.T) {
 			defer test.WriteFile(t, filepath.Join(dir, file.Name()), tC.input)()
 
 			err := <-errC
-			if tC.err == "" {
-				if err != nil {
-					t.Fatalf("expected no error. got %s", err)
-				}
-			} else {
-				if !strings.Contains(err.Error(), tC.err) {
-					t.Fatalf("expected an error containing %s. got %s", tC.err, err)
-				}
-			}
+			test.CheckErr(t, tC.err, err)
 
-			for _, expectedOut := range tC.out {
-				if !strings.Contains(strings.ToLower(out.String()), strings.ToLower(expectedOut)) {
-					t.Fatalf("expected output containing %s. got %q", expectedOut, out.String())
-				}
-			}
+			test.CheckOutput(t, tC.out, out.String())
 		})
 	}
 }
