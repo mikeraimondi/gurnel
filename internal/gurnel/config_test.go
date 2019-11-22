@@ -19,32 +19,32 @@ func (tdp *testDirProvider) getConfigDir() (string, error) {
 func TestLoadConfig(t *testing.T) {
 	testCases := []struct {
 		desc          string
-		preLoadConfFn func(string) config
-		postLoadConf  config
+		preLoadConfFn func(string) Config
+		postLoadConf  Config
 	}{
 		{
 			desc: "with an existing valid file",
-			preLoadConfFn: func(dir string) config {
-				return config{
+			preLoadConfFn: func(dir string) Config {
+				return Config{
 					dp: &testDirProvider{
 						configDir: dir,
 					},
 				}
 			},
-			postLoadConf: config{
+			postLoadConf: Config{
 				BeeminderEnabled: true,
 			},
 		},
 		{
 			desc: "with no existing file",
-			preLoadConfFn: func(_ string) config {
-				return config{
+			preLoadConfFn: func(_ string) Config {
+				return Config{
 					dp: &testDirProvider{
 						configDir: "/not/a/real/directory942310",
 					},
 				}
 			},
-			postLoadConf: config{
+			postLoadConf: Config{
 				BeeminderEnabled: false,
 			},
 		},
@@ -61,7 +61,7 @@ func TestLoadConfig(t *testing.T) {
 			}
 
 			c := tC.preLoadConfFn(filepath.Dir(file.Name()))
-			if err := c.load(filepath.Base(file.Name())); err != nil {
+			if err := c.Load(filepath.Base(file.Name())); err != nil {
 				t.Fatalf("expected no error loading config. got %s", err)
 			}
 
@@ -79,22 +79,22 @@ func TestGetConfigDir(t *testing.T) {
 	}
 	testCases := []struct {
 		desc string
-		pre  config
-		post config
+		pre  Config
+		post Config
 	}{
 		{
 			desc: "with no provider",
-			pre:  config{},
-			post: config{
+			pre:  Config{},
+			post: Config{
 				dp: &defaultDirProvider{},
 			},
 		},
 		{
 			desc: "with a provider",
-			pre: config{
+			pre: Config{
 				dp: tdp,
 			},
-			post: config{
+			post: Config{
 				dp: tdp,
 			},
 		},

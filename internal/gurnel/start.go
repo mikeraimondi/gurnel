@@ -24,7 +24,7 @@ func (*startCmd) LongHelp() string {
 	return "If you don't like the editor this uses, set $EDITOR to something else."
 }
 
-func (*startCmd) Run(r io.Reader, w io.Writer, args []string, conf *config) error {
+func (*startCmd) Run(r io.Reader, w io.Writer, args []string, conf *Config) error {
 	// Create or open entry at working directory
 	wd, err := os.Getwd()
 	if err != nil {

@@ -3,6 +3,7 @@ package test
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 	"time"
 )
@@ -37,6 +38,26 @@ func WriteFile(t *testing.T, path, contents string) func() {
 	return func() {
 		if err := f.Close(); err != nil {
 			t.Fatalf("closing file: %s", err)
+		}
+	}
+}
+
+func CheckErr(t *testing.T, expected string, actual error) {
+	if expected == "" {
+		if actual != nil {
+			t.Fatalf("expected no error. got %s", actual)
+		}
+	} else {
+		if !strings.Contains(actual.Error(), expected) {
+			t.Fatalf("expected an error containing %s. got %s", expected, actual)
+		}
+	}
+}
+
+func CheckOutput(t *testing.T, expected []string, actual string) {
+	for _, expectedOut := range expected {
+		if !strings.Contains(strings.ToLower(actual), strings.ToLower(expectedOut)) {
+			t.Fatalf("expected output containing %s. got %q", expectedOut, actual)
 		}
 	}
 }

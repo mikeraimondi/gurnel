@@ -2,7 +2,6 @@ package gurnel
 
 import (
 	"bytes"
-	"strings"
 	"testing"
 	"time"
 
@@ -78,16 +77,12 @@ func TestStats(t *testing.T) {
 
 			cmd := statsCmd{}
 			out := bytes.Buffer{}
-			conf := config{clock: &testClock}
+			conf := Config{clock: &testClock}
 			if err := cmd.Run(&bytes.Buffer{}, &out, []string{}, &conf); err != nil {
 				t.Fatalf("expected no error. got %s", err)
 			}
 
-			for _, expectedOut := range tC.out {
-				if !strings.Contains(strings.ToLower(out.String()), strings.ToLower(expectedOut)) {
-					t.Fatalf("expected output containing %s. got %q", expectedOut, out.String())
-				}
-			}
+			test.CheckOutput(t, tC.out, out.String())
 		})
 	}
 }

@@ -31,7 +31,7 @@ func (*statsCmd) LongHelp() string {
 		"to a Google Ngram corpus of scanned literature"
 }
 
-func (*statsCmd) Run(_ io.Reader, w io.Writer, args []string, conf *config) error {
+func (*statsCmd) Run(_ io.Reader, w io.Writer, args []string, conf *Config) error {
 	refFreqsCSV, err := bindata.Asset("eng-us-10000-1960.csv")
 	if err != nil {
 		return fmt.Errorf("loading asset: %w", err)
