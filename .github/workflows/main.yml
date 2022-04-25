@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-20.04
     container: golang:1.18.1
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Run Tests
       run: make test
     - name: Build
@@ -20,6 +20,6 @@ jobs:
     runs-on: ubuntu-20.04
     container: golangci/golangci-lint:v1.45.2
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
     - name: Run Linters
       run: make lint
