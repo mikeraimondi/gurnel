@@ -10,16 +10,18 @@ jobs:
     runs-on: ubuntu-20.04
     container: golang:1.18.1
     steps:
-    - uses: actions/checkout@v1
+    - uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Run Tests
       run: make test
     - name: Go Tidy
       run: make tidy
     - name: Run GoReleaser
-      uses: goreleaser/goreleaser-action@v1
+      uses: goreleaser/goreleaser-action@v2
       with:
         distribution: goreleaser
         version: v1.8.3
-        args: release --config=build/package/.goreleaser.yml
+        args: release --config=build/package/.goreleaser.yml --rm-dist
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_PERSONAL_ACCESS_TOKEN }}

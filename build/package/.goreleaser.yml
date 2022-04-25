@@ -13,7 +13,7 @@ changelog:
     - '^docs:'
     - '^test:'
 brews:
-- github:
+- tap:
     owner: mikeraimondi
     name: homebrew-tap
   commit_author:
