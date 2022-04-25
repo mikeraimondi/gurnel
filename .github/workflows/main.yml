@@ -8,8 +8,8 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-18.04
-    container: golang:1.13.1
+    runs-on: ubuntu-20.04
+    container: golang:1.18.1
     steps:
     - uses: actions/checkout@v1
     - name: Run Tests
@@ -17,8 +17,8 @@ jobs:
     - name: Build
       run: make build
   lint:
-    runs-on: ubuntu-18.04
-    container: golangci/golangci-lint:v1.21
+    runs-on: ubuntu-20.04
+    container: golangci/golangci-lint:v1.45.2
     steps:
     - uses: actions/checkout@v1
     - name: Run Linters

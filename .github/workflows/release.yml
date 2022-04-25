@@ -7,8 +7,8 @@ on:
 
 jobs:
   goreleaser:
-    runs-on: ubuntu-18.04
-    container: golang:1.13.1
+    runs-on: ubuntu-20.04
+    container: golang:1.18.1
     steps:
     - uses: actions/checkout@v1
     - name: Run Tests
@@ -18,7 +18,8 @@ jobs:
     - name: Run GoReleaser
       uses: goreleaser/goreleaser-action@v1
       with:
-        version: v0.119.0
+        distribution: goreleaser
+        version: v1.8.3
         args: release --config=build/package/.goreleaser.yml
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_PERSONAL_ACCESS_TOKEN }}
